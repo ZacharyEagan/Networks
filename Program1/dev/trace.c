@@ -15,9 +15,22 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "smartalloc.h"
 #include "checksum.h"
+
+
+/**
+ * Example Structure with packing
+ **/
+typedef struct packed 
+{
+   uint8_t a;
+   uint16_t b;
+   uint8_t c;
+   uint32_t d;
+} __attribute__((packed))Package;   
 
 /**
  * Usage: ./a.out file.pcap
@@ -28,6 +41,8 @@ int main(int argc, char *argv[])
 {
    if (argc < 1)
       return 1;
+
+   
    
    printf("hello\n");
    return 0;
