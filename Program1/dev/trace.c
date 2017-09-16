@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <pcap.h>
 
 #include "smartalloc.h"
 #include "checksum.h"
@@ -32,6 +33,8 @@ typedef struct packed
    uint32_t d;
 } __attribute__((packed))Package;   
 
+
+
 /**
  * Usage: ./a.out file.pcap
  *
@@ -39,11 +42,20 @@ typedef struct packed
  **/
 int main(int argc, char *argv[])
 {
-   if (argc < 1)
+   if (argc < 2)
+   {
+      fprintf(stderr, "Usage: ./a.out file\n");
       return 1;
+   }
 
    
+   char err[PCAP_ERRBUF_SIZE];
+   pcap_t *pfp;
    
-   printf("hello\n");
+   pfp = pcap_open_offline (argv[1], err); 
+   
+   if (pfp == NULL)
+     fprintf(stderr, "open failed %s\n", err);
+   
    return 0;
 }
