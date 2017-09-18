@@ -81,8 +81,12 @@ int main(int argc, char *argv[])
    
    /* get and display the destination address */
    memcpy(&ether, packet, sizeof(ether));  
-   fprintf(stderr, "Dest Address = %x:%x:%x:%x:%x:%x\n", ether.dst[0], ether.dst[1], 
-		   ether.dst[2], ether.dst[3], ether.dst[4], ether.dst[5]);
+   fprintf(stderr, "DST Address = %x:%x:%x:%x:%x:%x\n", ether.dst[0], ether.dst[1] 
+                          ,ether.dst[2], ether.dst[3], ether.dst[4], ether.dst[5]);
+   fprintf(stderr, "SRC Address = %x:%x:%x:%x:%x:%x\n", ether.src[0], ether.src[1] 
+                          ,ether.src[2], ether.src[3], ether.src[4], ether.src[5]);
+   
+
 
 
    pcap_close(pfp);
