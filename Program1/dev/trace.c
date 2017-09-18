@@ -33,6 +33,15 @@ typedef struct packed
    uint32_t d;
 } __attribute__((packed))Package;   
 
+/**
+ * Ethernet header with packing 
+ */
+typedef struct ether
+{
+    uint8_t dst[6];
+    uint8_t src[6];
+    uint8_t typ[2];
+} __attribute__((packed)) Ethernet;
 
 
 /**
@@ -65,9 +74,11 @@ int main(int argc, char *argv[])
 
    /* get a packet from pcap */
    packet = pcap_next(pfp, &header);
-   fprintf(stderr, "Packet length = %d\n, Timestamp = %d", header.len);
+   fprintf(stderr, "Packet length = %d\n", header.len);
    fprintf(stderr, "Dangerous but here's the packet\n%s\n",packet);
+  
    
+
    pcap_close(pfp);
    return 0;
 }
