@@ -34,13 +34,19 @@ typedef struct packed
 } __attribute__((packed))Package;   
 
 /**
+ * Enume to define types for ethernet
+ **/
+enum EthoType {ARP = 0x0806, IP = 0x0800}; 
+
+
+/**
  * Ethernet header with packing 
  **/
 typedef struct Ethernet
 {
     uint8_t dst[6];
     uint8_t src[6];
-    uint8_t typ[2];
+    uint16_t typ;
 } __attribute__((packed)) Ethernet;
 
 
@@ -87,9 +93,9 @@ int main(int argc, char *argv[])
    fprintf(stderr, "SRC Address = %02x:%02x:%02x:%02x:%02x:%02x\n", 
                    ether.src[0], ether.src[1], ether.src[2], ether.src[3], 
                    ether.src[4], ether.src[5]);
-   fprintf(stderr, "Type = %02x%02x\n", ether.typ[0], ether.typ[1]); 
+   fprintf(stderr, "Type = %04x\n", ether.typ); 
 
-
+   
 
    pcap_close(pfp);
    return 0;
