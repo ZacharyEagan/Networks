@@ -18,9 +18,12 @@
 #include <stdint.h>
 #include <pcap.h>
 #include <arpa/inet.h>
+#include <endian.h>
 
 #include "smartalloc.h"
 #include "checksum.h"
+
+
 
 
 /**
@@ -94,6 +97,11 @@ int main(int argc, char *argv[])
                    ether.src[0], ether.src[1], ether.src[2], ether.src[3], 
                    ether.src[4], ether.src[5]);
    fprintf(stderr, "Type = %04x\n", ntohs(ether.typ)); 
+   #if __BYTE_ORDER == __LITTLE_ENDIAN
+       fprintf(stderr, "Little Endian\n");
+   #elif __BYTE_ORDER == __BIG_ENDIAN
+       fprintf(stderr, "Big Endian\n");
+   #endif
 
    
 
