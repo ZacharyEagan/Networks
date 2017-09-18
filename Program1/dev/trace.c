@@ -42,20 +42,32 @@ typedef struct packed
  **/
 int main(int argc, char *argv[])
 {
+   char err[PCAP_ERRBUF_SIZE];
+   pcap_t *pfp;
+
+   struct pcap_pkthdr header;
+   const u_char *packet;
+   
+   /* check for usage */
    if (argc < 2)
    {
       fprintf(stderr, "Usage: ./a.out file\n");
       return 1;
    }
+  
 
-   
-   char err[PCAP_ERRBUF_SIZE];
-   pcap_t *pfp;
-   
+   /* open a pcap file and check validity, check for ethernet type */
    pfp = pcap_open_offline (argv[1], err); 
-   
    if (pfp == NULL)
      fprintf(stderr, "open failed %s\n", err);
+   if (pcap_datalink(pfp) != DLT_EN10MB)
+     fprintf(stderr, "wrong datalink type");
+
+   /* get a packet from pcap */
+   packet = pcap_next(pfp, &header);
+   fprintf(stderr, "Packet length = %d\n, Timestamp = %d", header.len);
+   fprintf(stderr, "Dangerous but here's the packet\n%s\n",packet);
    
+   pcap_close(pfp);
    return 0;
 }
