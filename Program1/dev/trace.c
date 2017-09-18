@@ -96,6 +96,8 @@ int main(int argc, char *argv[])
    fprintf(stderr, "SRC Address = %02x:%02x:%02x:%02x:%02x:%02x\n", 
                    ether.src[0], ether.src[1], ether.src[2], ether.src[3], 
                    ether.src[4], ether.src[5]);
+
+   /* examples for endianess testing */
    fprintf(stderr, "Type = %04x\n", ntohs(ether.typ)); 
    #if __BYTE_ORDER == __LITTLE_ENDIAN
        fprintf(stderr, "Little Endian\n");
@@ -103,7 +105,7 @@ int main(int argc, char *argv[])
        fprintf(stderr, "Big Endian\n");
    #endif
 
-   
+    
 
    pcap_close(pfp);
    return 0;
