@@ -66,7 +66,7 @@ typedef struct Arp_layer
     uint8_t op[2]; /*opcode*/   
     /* need easy way to stor the variable len
      * fields for the addresses */
-}  
+} __attribute__((packed)) Arp_layer;
 
 /**
  * Usage: ./a.out file.pcap
@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
    const u_char *packet;
 
    Ethernet ether;
+   Arp_layer arp_l;
    
    /* check for usage */
    if (argc < 2)
@@ -119,6 +120,8 @@ int main(int argc, char *argv[])
        fprintf(stderr, "Big Endian\n");
    #endif
 
+   memcpy(&arp_l, packet + sizeof(ether), sizeof(arp_l));
+   fprintf(stderr, "Op = %02x%02x\n", arp_l.op[0], arp_l.op[1]);
     
 
    pcap_close(pfp);
