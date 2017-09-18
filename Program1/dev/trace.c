@@ -37,7 +37,7 @@ typedef struct packed
 /**
  * Enume to define types for ethernet
  **/
-enum EthoType {ARP = 0x0806, IP = 0x0800}; 
+enum EthoType {ARP = 0x0806, IP = 0x0800, ETHO_LEN = 14}; 
 
 
 /**
@@ -84,9 +84,8 @@ int main(int argc, char *argv[])
    /* get a packet from pcap */
    packet = pcap_next(pfp, &header);
    fprintf(stderr, "Packet length = %d\n", header.len);
-   //fprintf(stderr, "Dangerous but here's the packet\n%s\n",packet);
    
-   /* get and display the destination address */
+   /* get and display the ethernet data */
    memcpy(&ether, packet, sizeof(ether));  
    fprintf(stderr, "DST Address = %02x:%02x:%02x:%02x:%02x:%02x\n", 
                    ether.dst[0], ether.dst[1] ,ether.dst[2], ether.dst[3], 
