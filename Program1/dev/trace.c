@@ -77,15 +77,17 @@ int main(int argc, char *argv[])
    /* get a packet from pcap */
    packet = pcap_next(pfp, &header);
    fprintf(stderr, "Packet length = %d\n", header.len);
-   fprintf(stderr, "Dangerous but here's the packet\n%s\n",packet);
+   //fprintf(stderr, "Dangerous but here's the packet\n%s\n",packet);
    
    /* get and display the destination address */
    memcpy(&ether, packet, sizeof(ether));  
-   fprintf(stderr, "DST Address = %x:%x:%x:%x:%x:%x\n", ether.dst[0], ether.dst[1] 
-                          ,ether.dst[2], ether.dst[3], ether.dst[4], ether.dst[5]);
-   fprintf(stderr, "SRC Address = %x:%x:%x:%x:%x:%x\n", ether.src[0], ether.src[1] 
-                          ,ether.src[2], ether.src[3], ether.src[4], ether.src[5]);
-   
+   fprintf(stderr, "DST Address = %02x:%02x:%02x:%02x:%02x:%02x\n", 
+                   ether.dst[0], ether.dst[1] ,ether.dst[2], ether.dst[3], 
+                   ether.dst[4], ether.dst[5]);
+   fprintf(stderr, "SRC Address = %02x:%02x:%02x:%02x:%02x:%02x\n", 
+                   ether.src[0], ether.src[1], ether.src[2], ether.src[3], 
+                   ether.src[4], ether.src[5]);
+   fprintf(stderr, "Type = %02x%02x\n", ether.typ[0], ether.typ[1]); 
 
 
 
