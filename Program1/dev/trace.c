@@ -55,6 +55,20 @@ typedef struct Ethernet
 
 
 /**
+ * ARP header with packing 
+ **/
+typedef struct Arp_layer
+{
+    uint8_t hrd[2]; /*hrdwr typ*/
+    uint8_t pro[2]; /*pro typ */
+    uint8_t hln; /* hardware adr len def 6 */
+    uint8_t pln;/* prot adr len def 4 (ipv4)*/
+    uint8_t op[2]; /*opcode*/   
+    /* need easy way to stor the variable len
+     * fields for the addresses */
+}  
+
+/**
  * Usage: ./a.out file.pcap
  *
  * return: 0 for success 1 for usage error
