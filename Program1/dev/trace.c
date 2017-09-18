@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <pcap.h>
+#include <arpa/inet.h>
 
 #include "smartalloc.h"
 #include "checksum.h"
@@ -93,7 +94,7 @@ int main(int argc, char *argv[])
    fprintf(stderr, "SRC Address = %02x:%02x:%02x:%02x:%02x:%02x\n", 
                    ether.src[0], ether.src[1], ether.src[2], ether.src[3], 
                    ether.src[4], ether.src[5]);
-   fprintf(stderr, "Type = %04x\n", ether.typ); 
+   fprintf(stderr, "Type = %04x\n", ntohs(ether.typ)); 
 
    
 
