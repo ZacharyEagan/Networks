@@ -35,8 +35,8 @@ typedef struct packed
 
 /**
  * Ethernet header with packing 
- */
-typedef struct ether
+ **/
+typedef struct Ethernet
 {
     uint8_t dst[6];
     uint8_t src[6];
@@ -56,6 +56,8 @@ int main(int argc, char *argv[])
 
    struct pcap_pkthdr header;
    const u_char *packet;
+
+   Ethernet ether;
    
    /* check for usage */
    if (argc < 2)
@@ -76,8 +78,12 @@ int main(int argc, char *argv[])
    packet = pcap_next(pfp, &header);
    fprintf(stderr, "Packet length = %d\n", header.len);
    fprintf(stderr, "Dangerous but here's the packet\n%s\n",packet);
-  
    
+   /* get and display the destination address */
+   memcpy(&ether, packet, sizeof(ether));  
+   fprintf(stderr, "Dest Address = %x:%x:%x:%x:%x:%x\n", ether.dst[0], ether.dst[1], 
+		   ether.dst[2], ether.dst[3], ether.dst[4], ether.dst[5]);
+
 
    pcap_close(pfp);
    return 0;
