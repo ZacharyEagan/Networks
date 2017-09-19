@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
    uint8_t *tha;
    uint8_t *tpa;
    size_t offset = 0;
-   int i, pcount = 0;
+   int i, pcount = 1;
    
    /* check for usage */
    if (argc < 2)
@@ -104,18 +104,24 @@ int main(int argc, char *argv[])
    if (pcap_datalink(pfp) != DLT_EN10MB)
      fprintf(stderr, "wrong datalink type");
 
+while (1)
+{
    /* get a packet from pcap */
    packet = pcap_next(pfp, &header);
-   fprintf(stderr, "Packet number: %d  Packet Len: %d\n\n",pcount, header.len);
+   if (packet == NULL) //not sure if this is the right test need to check
+   {
+       break;
+   }
+   fprintf(stderr, "\nPacket number: %d  Packet Len: %d\n\n",pcount++, header.len);
    
    /* get and display the ethernet data */
    memcpy(&ether, packet, sizeof(ether));  
    offset += sizeof(ether);
-  fprintf(stderr, "        Ethernet Header\n");
-  fprintf(stderr, "                Dest MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+  fprintf(stderr, "\tEthernet Header\n");
+  fprintf(stderr, "\t\tDest MAC: %x:%x:%x:%x:%x:%x\n",
                    ether.dst[0], ether.dst[1] ,ether.dst[2], ether.dst[3], 
                    ether.dst[4], ether.dst[5]);
-   fprintf(stderr, "                Source MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", 
+   fprintf(stderr, "\t\tSource MAC: %x:%x:%x:%x:%x:%x\n", 
                    ether.src[0], ether.src[1], ether.src[2], ether.src[3], 
                    ether.src[4], ether.src[5]);
 
@@ -127,9 +133,9 @@ int main(int argc, char *argv[])
 //       fprintf(stderr, "Big Endian\n");
    #endif
        if (ether.typ == ARP)
-           fprintf(stderr, "                Type: ARP\n\n");
+           fprintf(stderr, "\t\tType: ARP\n\n");
        if (ether.typ == IP)
-           fprintf(stderr, "                Type: IP\n\n");  
+           fprintf(stderr, "\t\tType: IP\n\n");  
 
    /* get the arp header from the packet */
    memcpy(&arp_l, packet + offset, sizeof(arp_l));
@@ -142,8 +148,8 @@ int main(int argc, char *argv[])
    #endif
 
    /* print out arp type and shtuffs */   
-   fprintf(stderr, "        ARP Header\n");
-   fprintf(stderr, "        Opcode: %s\n", arp_l.op == 1 ? "Request": "Reply");
+   fprintf(stderr, "\tARP Header\n");
+   fprintf(stderr, "\t\tOpcode: %s\n", arp_l.op == 1 ? "Request": "Reply");
 
     /* mallocs */
     sha = malloc(arp_l.hln);
@@ -160,40 +166,40 @@ int main(int argc, char *argv[])
    memcpy(tpa, packet + offset, arp_l.pln);
    offset += sizeof(arp_l.pln);
 
-   fprintf(stderr, "                Sender MAC: ");
+   fprintf(stderr, "\t\tSender MAC: ");
    i = 0;
-   fprintf(stderr, "%02x", sha[i++]);
+   fprintf(stderr, "%x", sha[i++]);
    do 
    {
-       fprintf(stderr, ":%02x", sha[i++]);
+       fprintf(stderr, ":%x", sha[i++]);
    } while (i < arp_l.hln); 
    fprintf(stderr, "\n");
 
-   fprintf(stderr, "                Sender IP: ");
+   fprintf(stderr, "\t\tSender IP: ");
    i = 0;
-   fprintf(stderr, "%02x", spa[i++]);
+   fprintf(stderr, "%x", spa[i++]);
    do 
    {
-       fprintf(stderr, ":%02x", spa[i++]);
+       fprintf(stderr, ":%x", spa[i++]);
    } while (i < arp_l.pln); 
    fprintf(stderr, "\n");
 
-   fprintf(stderr, "                Target MAC: ");
+   fprintf(stderr, "\t\tTarget MAC: ");
    i = 0;
-   fprintf(stderr, "%02x", tha[i++]);
+   fprintf(stderr, "%x", tha[i++]);
    do 
    {
-       fprintf(stderr, ":%02x", tha[i++]);
+       fprintf(stderr, ":%x", tha[i++]);
    } while (i < arp_l.hln); 
    fprintf(stderr, "\n");
   
 
-   fprintf(stderr, "                Target IP: ");
+   fprintf(stderr, "\t\tTarget IP: ");
    i = 0;
-   fprintf(stderr, "%02x", tpa[i++]);
+   fprintf(stderr, "%x", tpa[i++]);
    do 
    {
-       fprintf(stderr, ":%02x", tpa[i++]);
+       fprintf(stderr, ":%x", tpa[i++]);
    } while (i < arp_l.pln); 
    fprintf(stderr, "\n");
 
@@ -203,7 +209,7 @@ int main(int argc, char *argv[])
     free(spa);
     free(tha);
     free(tpa);
-    
+}    
 
    pcap_close(pfp);
    return 0;
