@@ -59,11 +59,11 @@ typedef struct Ethernet
  **/
 typedef struct Arp_layer
 {
-    uint8_t hrd[2]; /*hrdwr typ*/
-    uint8_t pro[2]; /*pro typ */
+    uint16_t hrd; /*hrdwr typ*/
+    uint16_t pro; /*pro typ */
     uint8_t hln; /* hardware adr len def 6 */
     uint8_t pln;/* prot adr len def 4 (ipv4)*/
-    uint8_t op[2]; /*opcode*/   
+    uint16_t op; /*opcode*/   
     /* need easy way to stor the variable len
      * fields for the addresses */
 } __attribute__((packed)) Arp_layer;
@@ -113,15 +113,26 @@ int main(int argc, char *argv[])
                    ether.src[4], ether.src[5]);
 
    /* examples for endianess testing */
-   fprintf(stderr, "Type = %04x\n", ntohs(ether.typ)); 
    #if __BYTE_ORDER == __LITTLE_ENDIAN
+       ether.typ = ntohs(ether.typ);
        fprintf(stderr, "Little Endian\n");
    #elif __BYTE_ORDER == __BIG_ENDIAN
        fprintf(stderr, "Big Endian\n");
    #endif
+       fprintf(stderr, "Type = %04x\n", ether.typ); 
 
+   /* get the arp header from the packet */
    memcpy(&arp_l, packet + sizeof(ether), sizeof(arp_l));
-   fprintf(stderr, "Op = %02x%02x\n", arp_l.op[0], arp_l.op[1]);
+   #if __BYTE_ORDER == __LITTLE_ENDIAN
+       arp_l.op = ntohs(arp_l.op);
+       arp_l.pro = ntohs(arp_l.pro);
+       arp_l.op = ntohs(arp_l.hrd);
+   #elif __BYTE_ORDER == __BIG_ENDIAN
+   #endif
+
+   /* print out arp type and shtuffs */    
+   fprintf(stderr, "Op = %04x\nArp Type: %s\n", arp_l.op, arp_l.op == 1 ? 
+		   "request": "other");
     
 
    pcap_close(pfp);
