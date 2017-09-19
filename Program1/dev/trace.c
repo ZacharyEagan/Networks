@@ -13,6 +13,20 @@
 
 #include "trace.h"
 
+/**
+ * prints a hexedecimal formatted address
+ **/
+void print_address(uint8_t *data, uint8_t size)
+{
+   int i = 0;
+   if (size)
+      printf("%x", data[i++]); 
+   while (i < size)
+   {
+       printf(":%x", data[i++]);
+   }
+}
+
 
 /**
  * Usage: ./a.out file.pcap
@@ -51,26 +65,26 @@ int main(int argc, char *argv[])
    if (pcap_datalink(pfp) != DLT_EN10MB)
      fprintf(stderr, "wrong datalink type");
 
-while (1)
-{
+
    /* get a packet from pcap */
-   i = pcap_next_ex(pfp, &header, &packet);
-   if (i == -2) //not sure if this is the right test need to check
+   /* loop for all packets */
+   while (pcap_next_ex(pfp, &header, &packet) != -2)
    {
-       break;
-   }
-   fprintf(stderr, "\nPacket number: %d  Packet Len: %d\n\n",pcount++, header->len);
+      fprintf(stderr, "\nPacket number: %d  Packet Len: %d\n\n", pcount++, header->len);
    
-   /* get and display the ethernet data */
-   memcpy(&ether, packet, sizeof(ether));  
-   offset += sizeof(ether);
-  fprintf(stderr, "\tEthernet Header\n");
-  fprintf(stderr, "\t\tDest MAC: %x:%x:%x:%x:%x:%x\n",
-                   ether.dst[0], ether.dst[1] ,ether.dst[2], ether.dst[3], 
-                   ether.dst[4], ether.dst[5]);
-   fprintf(stderr, "\t\tSource MAC: %x:%x:%x:%x:%x:%x\n", 
-                   ether.src[0], ether.src[1], ether.src[2], ether.src[3], 
-                   ether.src[4], ether.src[5]);
+      /* get and display the ethernet data */
+      memcpy(&ether, packet, sizeof(ether));  
+      offset += sizeof(ether);
+  
+  printf("\tEthernet Header\n");
+  printf("\t\tDest MAC: ");
+  print_address(ether.dst, 6);
+  printf("\n");
+
+  printf("\t\tSource MAC: ");
+  print_address(ether.src, 6);
+  printf("\n");
+  
 
    /* examples for endianess testing */
    #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -80,9 +94,9 @@ while (1)
 //       fprintf(stderr, "Big Endian\n");
    #endif
        if (ether.typ == ARP)
-           fprintf(stderr, "\t\tType: ARP\n\n");
+           printf("\t\tType: ARP\n\n");
        if (ether.typ == IP)
-           fprintf(stderr, "\t\tType: IP\n\n");  
+           printf("\t\tType: IP\n\n");  
 
    /* get the arp header from the packet */
    memcpy(&arp_l, packet + offset, sizeof(arp_l));
@@ -95,8 +109,8 @@ while (1)
    #endif
 
    /* print out arp type and shtuffs */   
-   fprintf(stderr, "\tARP Header\n");
-   fprintf(stderr, "\t\tOpcode: %s\n", arp_l.op == 1 ? "Request": "Reply");
+   fprintf("\tARP Header\n");
+   fprintf("\t\tOpcode: %s\n", arp_l.op == 1 ? "Request": "Reply");
 
     /* mallocs */
     sha = malloc(arp_l.hln);
@@ -114,13 +128,9 @@ while (1)
    offset += sizeof(arp_l.pln);
 
    fprintf(stderr, "\t\tSender MAC: ");
-   i = 0;
-   fprintf(stderr, "%x", sha[i++]);
-   do 
-   {
-       fprintf(stderr, ":%x", sha[i++]);
-   } while (i < arp_l.hln); 
+   print_address(sha, arp_l.hln);
    fprintf(stderr, "\n");
+   
 
    fprintf(stderr, "\t\tSender IP: ");
    i = 0;
