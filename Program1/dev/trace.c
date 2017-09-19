@@ -42,7 +42,6 @@ typedef struct packed
  **/
 enum EthoType {ARP = 0x0806, IP = 0x0800, ETHO_LEN = 14}; 
 
-
 /**
  * Ethernet header with packing 
  **/
@@ -83,6 +82,11 @@ int main(int argc, char *argv[])
 
    Ethernet ether;
    Arp_layer arp_l;
+   uint8_t *sha;
+   uint8_t *spa;
+   uint8_t *tha;
+   uint8_t *tpa;
+   size_t offset = 0;
    
    /* check for usage */
    if (argc < 2)
@@ -105,6 +109,7 @@ int main(int argc, char *argv[])
    
    /* get and display the ethernet data */
    memcpy(&ether, packet, sizeof(ether));  
+   offset += sizeof(ether);
    fprintf(stderr, "DST Address = %02x:%02x:%02x:%02x:%02x:%02x\n", 
                    ether.dst[0], ether.dst[1] ,ether.dst[2], ether.dst[3], 
                    ether.dst[4], ether.dst[5]);
@@ -122,7 +127,8 @@ int main(int argc, char *argv[])
        fprintf(stderr, "Type = %04x\n", ether.typ); 
 
    /* get the arp header from the packet */
-   memcpy(&arp_l, packet + sizeof(ether), sizeof(arp_l));
+   memcpy(&arp_l, packet + offset, sizeof(arp_l));
+   offset += sizeof(arp_l);
    #if __BYTE_ORDER == __LITTLE_ENDIAN
        arp_l.op = ntohs(arp_l.op);
        arp_l.pro = ntohs(arp_l.pro);
@@ -133,6 +139,26 @@ int main(int argc, char *argv[])
    /* print out arp type and shtuffs */    
    fprintf(stderr, "Op = %04x\nArp Type: %s\n", arp_l.op, arp_l.op == 1 ? 
 		   "request": "other");
+    /* mallocs */
+    sha = malloc(arp_l.hln);
+    spa = malloc(arp_l.pln);
+    tha = malloc(arp_l.hln);
+    tpa = malloc(arp_l.pln);
+    
+   memcpy(sha, packet + offset, arp_l.hln);
+   offset += sizeof(arp_l.hln);
+   memcpy(spa, packet + offset, arp_l.pln);
+   offset += sizeof(arp_l.pln);
+   memcpy(tha, packet + offset, arp_l.hln);
+   offset += sizeof(arp_l.hln);
+   memcpy(tpa, packet + offset, arp_l.pln);
+   offset += sizeof(arp_l.pln);
+
+    /* frees */
+    free(sha);
+    free(spa);
+    free(tha);
+    free(tpa);
     
 
    pcap_close(pfp);
