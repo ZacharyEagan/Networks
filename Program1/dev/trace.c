@@ -27,6 +27,20 @@ void print_address(uint8_t *data, uint8_t size)
    }
 }
 
+/**
+ * prints a decimal formatted address
+ **/
+void print_IP_address(uint8_t *data, uint8_t size)
+{
+   int i = 0;
+   if (size)
+      printf("%d", data[i++]); 
+   while (i < size)
+   {
+       printf(".%d", data[i++]);
+   }
+}
+
 
 /**
  * build and print etho header
@@ -82,28 +96,29 @@ void parse_ARP(const u_char *packet, size_t *offset)
    #if __BYTE_ORDER == __LITTLE_ENDIAN
        arp_l.op = ntohs(arp_l.op);
        arp_l.pro = ntohs(arp_l.pro);
-       arp_l.op = ntohs(arp_l.hrd);
+       arp_l.hrd = ntohs(arp_l.hrd);
    #elif __BYTE_ORDER == __BIG_ENDIAN
    #endif
 
    /* print out arp type and shtuffs */   
    printf("\tARP Header\n");
-   printf("\t\tOpcode: %s\n", arp_l.op == 1 ? "Request": "Reply");
+   printf("\t\tOpcode: %s\n", arp_l.op == 1 ? "Request" : "Reply");
 
    /* mallocs */
    sha = malloc(arp_l.hln);
    spa = malloc(arp_l.pln);
    tha = malloc(arp_l.hln);
    tpa = malloc(arp_l.pln);
-    
+   
+   /* copy the addresses */  
    memcpy(sha, packet + *offset, arp_l.hln);
-   *offset += sizeof(arp_l.hln);
+   *offset += arp_l.hln;
    memcpy(spa, packet + *offset, arp_l.pln);
-   *offset += sizeof(arp_l.pln);
+   *offset += arp_l.pln;
    memcpy(tha, packet + *offset, arp_l.hln);
-   *offset += sizeof(arp_l.hln);
+   *offset += arp_l.hln;
    memcpy(tpa, packet + *offset, arp_l.pln);
-   *offset += sizeof(arp_l.pln);
+   *offset += arp_l.pln;
 
    printf("\t\tSender MAC: ");
    print_address(sha, arp_l.hln);
@@ -111,7 +126,7 @@ void parse_ARP(const u_char *packet, size_t *offset)
    
 
    printf("\t\tSender IP: ");
-   print_address(spa, arp_l.pln);
+   print_IP_address(spa, arp_l.pln);
    printf("\n");
 
    printf("\t\tTarget MAC: ");
@@ -120,7 +135,7 @@ void parse_ARP(const u_char *packet, size_t *offset)
   
 
    printf("\t\tTarget IP: ");
-   print_address(tpa, arp_l.pln);
+   print_IP_address(tpa, arp_l.pln);
    printf("\n");
 
 
@@ -171,11 +186,13 @@ int main(int argc, char *argv[])
    while (pcap_next_ex(pfp, &header, &packet) != -2)
    {
       offset = 0;
-      fprintf(stderr, "\nPacket number: %d  Packet Len: %d\n\n", pcount++, header->len);
+      printf("\nPacket number: %d  Packet Len: %d\n\n", pcount++, header->len);
       type = parse_Etho(packet, &offset);
-      if (type)
-         type++;
-      parse_ARP(packet, &offset);
+      switch(type)
+      {
+         case ARP: parse_ARP(packet, &offset); break;
+         default : fprintf(stderr, "Have not implimented type: %d\n", type);
+      }
    }    
 
    pcap_close(pfp);
