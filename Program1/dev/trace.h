@@ -54,4 +54,21 @@ typedef struct Arp_layer
  *      * fields for the addresses */
 } __attribute__((packed)) Arp_layer;
 
+/**
+ * prints a hexedecimal formatted address
+ **/
+void print_address(uint8_t *data, uint8_t size);
+
+/**
+ * gets and prints the ethernet packet
+ * updates offset
+ * returns type of next packet
+ **/
+uint16_t parse_Etho(const u_char *packet, size_t *offset);
+
+/**
+ * prints data from the arp header
+ **/
+void parse_ARP(const u_char *packet, size_t *offset);
+
 
