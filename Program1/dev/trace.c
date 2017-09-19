@@ -87,6 +87,7 @@ int main(int argc, char *argv[])
    uint8_t *tha;
    uint8_t *tpa;
    size_t offset = 0;
+   int i;
    
    /* check for usage */
    if (argc < 2)
@@ -153,6 +154,15 @@ int main(int argc, char *argv[])
    offset += sizeof(arp_l.hln);
    memcpy(tpa, packet + offset, arp_l.pln);
    offset += sizeof(arp_l.pln);
+
+
+   i = 0;
+   fprintf(stderr, "%02x", sha[i++]);
+   do 
+   {
+       fprintf(stderr, ":%02x", sha[i++]);
+   } while (i < arp_l.hln); 
+   fprintf(stderr, "\n");
 
     /* frees */
     free(sha);
