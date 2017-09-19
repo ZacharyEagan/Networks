@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
    char err[PCAP_ERRBUF_SIZE];
    pcap_t *pfp;
 
-   struct pcap_pkthdr header;
+   struct pcap_pkthdr *header;
    const u_char *packet;
 
    Ethernet ether;
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
    int i, pcount = 1;
    
    /* check for usage */
-   if (argc < 2)
+   if (argc != 2)
    {
       fprintf(stderr, "Usage: ./a.out file\n");
       return 1;
@@ -54,12 +54,12 @@ int main(int argc, char *argv[])
 while (1)
 {
    /* get a packet from pcap */
-   packet = pcap_next(pfp, &header);
-   if (packet == NULL) //not sure if this is the right test need to check
+   i = pcap_next_ex(pfp, &header, &packet);
+   if (i == -2) //not sure if this is the right test need to check
    {
        break;
    }
-   fprintf(stderr, "\nPacket number: %d  Packet Len: %d\n\n",pcount++, header.len);
+   fprintf(stderr, "\nPacket number: %d  Packet Len: %d\n\n",pcount++, header->len);
    
    /* get and display the ethernet data */
    memcpy(&ether, packet, sizeof(ether));  
