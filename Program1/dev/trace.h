@@ -30,6 +30,30 @@
 enum EthoType {ARP = 0x0806, IP = 0x0800, ETHO_LEN = 14};
 
 /**
+ * Enume to define types for IP and bellow
+ **/
+enum IP_Type {ICMP = 1, TCP = 6, UDP = 17};
+
+/**
+ * IP Header with packing
+ *   **/
+typedef struct IP_layer
+{
+    uint8_t ver_hLen;
+    uint8_t tos;
+    uint16_t tlen;
+    uint16_t id;
+    uint16_t fragOff;
+    uint8_t ttl;
+    uint8_t prot;
+    uint16_t check;
+    uint8_t src[4];
+    uint8_t dst[4];
+    //note: does not include variable IP optional
+} __attribute__((packed)) IP_layer;
+
+
+/**
  *  * Ethernet header with packing 
  *   **/
 typedef struct Ethernet
@@ -60,6 +84,11 @@ typedef struct Arp_layer
 void print_address(uint8_t *data, uint8_t size);
 
 /**
+ * prints a hexedecimal formatted address
+ **/
+void print_IP_address(uint8_t *data, uint8_t size);
+
+/**
  * gets and prints the ethernet packet
  * updates offset
  * returns type of next packet
@@ -71,4 +100,9 @@ uint16_t parse_Etho(const u_char *packet, size_t *offset);
  **/
 void parse_ARP(const u_char *packet, size_t *offset);
 
-
+/**
+ * gets and prints IP header
+ * updates offset
+ * returns type off next packet
+ **/
+uint8_t parse_IP(const u_char *packet, size_t *offset);

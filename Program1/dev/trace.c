@@ -146,6 +146,53 @@ void parse_ARP(const u_char *packet, size_t *offset)
     free(tpa);
 }
 
+/**
+ * gets and prints IP header
+ * updates offset
+ * returns type off next packet
+ **/
+uint8_t parse_IP(const u_char *packet, size_t *offset)
+{
+   IP_layer ip;
+   /* get the IP header from the packet */
+   memcpy(&ip, packet + *offset, sizeof(ip));
+   #if __BYTE_ORDER == __LITTLE_ENDIAN
+       ip.tlen = ntohs(ip.tlen);
+       ip.id = ntohs(ip.id);
+       ip.fragOff = ntohs(ip.fragOff);
+       ip.check = ntohs(ip.check);
+   #elif __BYTE_ORDER == __BIG_ENDIAN
+   #endif
+   /* set the offset according to the header length value */
+   *offset += (ip.ver_hLen & 0x0F) * 4;
+   
+   printf("\tIP Header\n");
+   printf("\t\tTOS: 0x%x\n", ip.tos);
+   printf("\t\tTTL: %d\n", ip.ttl);
+   printf("\t\tProtocol: ");
+   switch (ip.prot)
+   {
+      case ICMP: printf("ICMP"); break; 
+      case TCP : printf("TCP"); break;
+      case UDP : printf("UDP"); break;
+      default  : fprintf(stderr, "ip.prot: unknown\n"); break;
+   }
+   printf("\n");
+   
+   printf("\t\tChecksum: %s (0x%04x)\n", "DEFAULT", ip.check);
+
+   printf("\t\tSender IP: ");
+   print_IP_address(ip.src, 4);
+   printf("\n");
+   printf("\t\tDest IP: ");
+   print_IP_address(ip.dst, 4);
+   printf("\n");
+
+   return ip.prot;
+}
+
+
+
 
 /**
  * Usage: ./a.out file.pcap
@@ -178,7 +225,7 @@ int main(int argc, char *argv[])
    if (pfp == NULL)
      fprintf(stderr, "open failed %s\n", err);
    if (pcap_datalink(pfp) != DLT_EN10MB)
-     fprintf(stderr, "wrong datalink type");
+     printf("Un-known PDU\n");
 
 
    /* get a packet from pcap */
@@ -191,6 +238,7 @@ int main(int argc, char *argv[])
       switch(type)
       {
          case ARP: parse_ARP(packet, &offset); break;
+         case IP : parse_IP(packet, &offset); break;
          default : fprintf(stderr, "Have not implimented type: %d\n", type);
       }
    }    
