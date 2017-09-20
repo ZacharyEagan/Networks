@@ -222,6 +222,44 @@ uint8_t parse_ICMP(const u_char *packet, size_t *offset)
    return icmp.typ;
 }
 
+/**
+ * gets and prints TCP header
+ * updates offset
+ * returns type off next packet
+ **/
+uint8_t parse_TCP(const u_char *packet, size_t *offset)
+{
+   TCP_layer tcp;
+   /* get the IP header from the packet */
+   memcpy(&tcp, packet + *offset, sizeof(tcp));
+   #if __BYTE_ORDER == __LITTLE_ENDIAN
+       tcp.src = ntohs(tcp.src);
+       tcp.dst = ntohs(tcp.dst);
+       tcp.sqnc = ntohl(tcp.sqnc);
+       tcp.ack = ntohl(tcp.ack);
+       tcp.window = ntohs(tcp.window);
+       tcp.check = ntohs(tcp.check);
+       tcp.urgent = ntohs(tcp.urgent);
+   #elif __BYTE_ORDER == __BIG_ENDIAN
+   #endif
+   /* set the offset according to the header length value */
+   *offset += sizeof(tcp);
+   
+   printf("\t\tSource Port:  %d\n", tcp.src);
+   printf("\t\tDest Port:  %d\n", tcp.dst);
+   printf("\t\tSequence Number: %lu\n", (long unsigned int)tcp.sqnc);
+   printf("\t\tACK Number: %lu\n",(long unsigned int) tcp.ack);
+   printf("\t\tSYN Flag: %s\n", tcp.multiple & 0x02 ? "Yes" : "No");
+   printf("\t\tRST Flag: %s\n", tcp.multiple & 0x04 ? "Yes" : "No");
+   printf("\t\tFIN Flag: %s\n", tcp.multiple & 0x01 ? "Yes" : "No");
+   printf("\t\tWindow Size: %d\n", tcp.window);
+   printf("\t\tChecksum: %s (0x%x)\n\n", "Not Imp", tcp.check);
+ 
+   return tcp.multiple;
+}
+
+
+
 
 
 /**
@@ -275,6 +313,7 @@ int main(int argc, char *argv[])
                                 parse_ICMP(packet, &offset);
                                 break;
                      case TCP : printf("\tTCP Header\n");
+                                parse_TCP(packet, &offset);
                                 break;
                      case UDP : printf("\tUDP Header\n");
                                 break;

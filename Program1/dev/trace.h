@@ -34,6 +34,23 @@ enum EthoType {ARP = 0x0806, IP = 0x0800, ETHO_LEN = 14};
  **/
 enum IP_Type {ICMP = 1, TCP = 6, UDP = 17};
 
+enum TCP_Type {APPLES = 0}; 
+/**
+ * TCP header with packing
+ **/
+typedef struct TCP_layer
+{
+   uint16_t src;
+   uint16_t dst;
+   uint32_t sqnc;
+   uint32_t ack;
+   uint8_t  off_res_ns;
+   uint8_t  multiple;
+   uint16_t window;
+   uint16_t check;
+   uint16_t urgent;
+   //ignoring rest of header cause don't need it
+} __attribute__((packed)) TCP_layer;
 
 enum ICMP_Type {ECHO_REPLY = 0, ECHO_REQ = 8}; 
 /**
@@ -44,6 +61,7 @@ typedef struct ICMP_layer
    uint8_t typ;
    uint8_t code;
    uint16_t check; 
+   uint32_t rest;
    //ignoring rest of header cause don't need it
 } __attribute__((packed)) ICMP_layer;
 
@@ -150,3 +168,10 @@ uint8_t parse_IP(const u_char *packet, size_t *offset);
  * returns type off next packet
  **/
 uint8_t parse_ICMP(const u_char *packet, size_t *offset);
+
+/**
+ * gets and prints TCP header
+ * updates offset
+ * returns type off next packet
+ **/
+uint8_t parse_TCP(const u_char *packet, size_t *offset);
