@@ -180,7 +180,7 @@ uint8_t parse_IP(const u_char *packet, size_t *offset)
    printf("\n");
    
    check_IP(ip);
-   printf("\t\tChecksum: %s (0x%04x)\n", check_IP(ip) ? "Correct" :"Incorect" , ip.check);
+   printf("\t\tChecksum: %s (0x%x)\n", check_IP(ip) ? "Correct" :"Incorect" , ip.check);
    
 
    printf("\t\tSender IP: ");
@@ -253,12 +253,37 @@ uint8_t parse_TCP(const u_char *packet, size_t *offset)
    printf("\t\tRST Flag: %s\n", tcp.multiple & 0x04 ? "Yes" : "No");
    printf("\t\tFIN Flag: %s\n", tcp.multiple & 0x01 ? "Yes" : "No");
    printf("\t\tWindow Size: %d\n", tcp.window);
-   printf("\t\tChecksum: %s (0x%x)\n\n", "Not Imp", tcp.check);
+   printf("\t\tChecksum: %s (0x%x)\n\n", check_TCP(tcp) ? "Not Imp 1" : "Not Imp 0", tcp.check);
  
    return tcp.multiple;
 }
 
 
+/**
+ * gets and prints UDP header
+ * updates offset
+ * returns type off next packet
+ **/
+uint8_t parse_UDP(const u_char *packet, size_t *offset)
+{
+   UDP_layer udp;
+   /* get the IP header from the packet */
+   memcpy(&udp, packet + *offset, sizeof(udp));
+   #if __BYTE_ORDER == __LITTLE_ENDIAN
+       udp.src = ntohs(udp.src);
+       udp.dst = ntohs(udp.dst);
+       udp.len = ntohs(udp.len);
+       udp.check = ntohs(udp.check);
+   #elif __BYTE_ORDER == __BIG_ENDIAN
+   #endif
+   /* set the offset according to the header length value */
+   *offset += sizeof(udp);
+   
+   printf("\t\tSource Port:  %d\n", udp.src);
+   printf("\t\tDest Port:  %d\n", udp.dst);
+ 
+   return udp.len;
+}
 
 
 
@@ -316,6 +341,7 @@ int main(int argc, char *argv[])
                                 parse_TCP(packet, &offset);
                                 break;
                      case UDP : printf("\tUDP Header\n");
+                                parse_UDP(packet, &offset);
                                 break;
                      default  : break;
                    }
