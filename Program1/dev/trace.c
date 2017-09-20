@@ -188,11 +188,39 @@ uint8_t parse_IP(const u_char *packet, size_t *offset)
    printf("\n");
    printf("\t\tDest IP: ");
    print_IP_address(ip.dst, 4);
-   printf("\n");
+   printf("\n\n");
 
    return ip.prot;
 }
 
+/**
+ * gets and prints ICMP header
+ * updates offset
+ * returns type off next packet
+ **/
+uint8_t parse_ICMP(const u_char *packet, size_t *offset)
+{
+   ICMP_layer icmp;
+   /* get the IP header from the packet */
+   memcpy(&icmp, packet + *offset, sizeof(icmp));
+   #if __BYTE_ORDER == __LITTLE_ENDIAN
+       icmp.check = ntohs(icmp.check);
+   #elif __BYTE_ORDER == __BIG_ENDIAN
+   #endif
+   /* set the offset according to the header length value */
+   *offset += sizeof(icmp);
+   
+   printf("\t\tType: ");
+   switch (icmp.typ)
+   {
+      case ECHO_REPLY: printf("Reply");break;
+      case ECHO_REQ  : printf("Request");break;
+      default : printf("Unknown %d", icmp.typ);break;
+   }
+   printf("\n"); 
+ 
+   return icmp.typ;
+}
 
 
 
@@ -240,7 +268,20 @@ int main(int argc, char *argv[])
       switch(type)
       {
          case ARP: parse_ARP(packet, &offset); break;
-         case IP : parse_IP(packet, &offset); break;
+
+         case IP : switch (parse_IP(packet, &offset))
+                   {
+                     case ICMP: printf("\tICMP Header\n");
+                                parse_ICMP(packet, &offset);
+                                break;
+                     case TCP : printf("\tTCP Header\n");
+                                break;
+                     case UDP : printf("\tUDP Header\n");
+                                break;
+                     default  : break;
+                   }
+                   break;
+
          default : fprintf(stderr, "Have not implimented type: %d\n", type);
       }
    }    
