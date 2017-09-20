@@ -179,7 +179,9 @@ uint8_t parse_IP(const u_char *packet, size_t *offset)
    }
    printf("\n");
    
-   printf("\t\tChecksum: %s (0x%04x)\n", "DEFAULT", ip.check);
+   check_IP(ip);
+   printf("\t\tChecksum: %s (0x%04x)\n", check_IP(ip) ? "Correct" :"Incorect" , ip.check);
+   
 
    printf("\t\tSender IP: ");
    print_IP_address(ip.src, 4);

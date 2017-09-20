@@ -34,6 +34,10 @@ enum EthoType {ARP = 0x0806, IP = 0x0800, ETHO_LEN = 14};
  **/
 enum IP_Type {ICMP = 1, TCP = 6, UDP = 17};
 
+
+
+
+
 /**
  * IP Header with packing
  *   **/
@@ -52,6 +56,26 @@ typedef struct IP_layer
     //note: does not include variable IP optional
 } __attribute__((packed)) IP_layer;
 
+/**
+ * Checksum checker for IP header
+ **/
+int check_IP(IP_layer ip)
+{
+   uint32_t sum = (ip.ver_hLen << 8) + ip.tos;
+   sum += ip.tlen;
+   sum += ip.id;
+   sum += ip.fragOff;
+   sum += ((uint32_t)ip.ttl << 8);
+   sum += ip.prot;
+   sum += ip.check;
+   sum += (ip.src[0] << 8) + ip.src[1];
+   sum += (ip.src[2] << 8) + ip.src[3];
+   sum += (ip.dst[0] << 8) + ip.dst[1];
+   sum += (ip.dst[2] << 8) + ip.dst[3];  
+   sum = (sum & 0x0000ffff) + (sum >> 16);
+
+   return sum ^ 0xFFFFFFFF;
+}
 
 /**
  *  * Ethernet header with packing 
@@ -106,3 +130,5 @@ void parse_ARP(const u_char *packet, size_t *offset);
  * returns type off next packet
  **/
 uint8_t parse_IP(const u_char *packet, size_t *offset);
+
+
