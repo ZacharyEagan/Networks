@@ -153,13 +153,10 @@ void parse_ARP(const u_char *packet, size_t *offset)
  **/
 uint8_t parse_IP(const u_char *packet, size_t *offset, TCP_psudo *psudo)
 {
-   int chk;
    IP_layer ip;
    /* get the IP header from the packet */
    memcpy(&ip, packet + *offset, sizeof(ip));
-   fprintf(stderr, "ip chk = %d\n", (chk = in_cksum((short unsigned *)&ip, sizeof(ip))));
-
-
+   
 /*copy relevent data to the psudo header in case of TCP*/
    psudo->src[0] = ip.src[0];
    psudo->src[1] = ip.src[1];
@@ -180,7 +177,6 @@ uint8_t parse_IP(const u_char *packet, size_t *offset, TCP_psudo *psudo)
        ip.check = ntohs(ip.check);
    #elif __BYTE_ORDER == __BIG_ENDIAN
    #endif
-
    /* set the offset according to the header length value */
    *offset += (ip.ver_hLen & 0x0F) * 4;
    
@@ -193,12 +189,13 @@ uint8_t parse_IP(const u_char *packet, size_t *offset, TCP_psudo *psudo)
       case ICMP: printf("ICMP"); break; 
       case TCP : printf("TCP"); break;
       case UDP : printf("UDP"); break;
-      default  : printf("Unknown"); break;
+      default  : fprintf(stderr, "ip.prot: unknown\n"); break;
    }
    printf("\n");
    
    check_IP(ip);
-   printf("\t\tChecksum: %s (0x%x)\n", chk ?"Incorrect"  :"Correct" , ip.check);
+
+   printf("\t\tChecksum: %s (0x%x)\n", check_IP(ip) ? "Correct" :"Incorect" , ip.check);
    
 
    printf("\t\tSender IP: ");
@@ -206,7 +203,7 @@ uint8_t parse_IP(const u_char *packet, size_t *offset, TCP_psudo *psudo)
    printf("\n");
    printf("\t\tDest IP: ");
    print_IP_address(ip.dst, 4);
-   printf("\n");
+   printf("\n\n");
 
    return ip.prot;
 }
@@ -233,7 +230,7 @@ uint8_t parse_ICMP(const u_char *packet, size_t *offset)
    {
       case ECHO_REPLY: printf("Reply");break;
       case ECHO_REQ  : printf("Request");break;
-      default : printf("Unknown"); break;
+      default : printf("Unknown %d", icmp.typ);break;
    }
    printf("\n"); 
  
@@ -360,14 +357,14 @@ int main(int argc, char *argv[])
 
          case IP : switch (parse_IP(packet, &offset, &psudo))
                    {
-                     case ICMP: printf("\n\tICMP Header\n");
+                     case ICMP: printf("\tICMP Header\n");
                                 parse_ICMP(packet, &offset);
                                 break;
                      case TCP : psudo.tcp_len = header->len - offset;
-                                printf("\n\tTCP Header\n");
+                                printf("\tTCP Header\n");
                                 parse_TCP(packet, &offset, psudo);
                                 break;
-                     case UDP : printf("\n\tUDP Header\n");
+                     case UDP : printf("\tUDP Header\n");
                                 parse_UDP(packet, &offset);
                                 break;
                      default  : break;
@@ -376,7 +373,7 @@ int main(int argc, char *argv[])
 
          default : fprintf(stderr, "Have not implimented type: %d\n", type);
       }
-   }
+   }    
 
    pcap_close(pfp);
    return 0;

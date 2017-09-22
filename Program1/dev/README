@@ -1,0 +1,8 @@
+Zachary Eagan
+zeagan@calpoly.edu
+
+Special Instructions: None
+
+Additional Notes:
+Still having problems with the TCP checksum I think my psudo header is right but the endianess or
+somthing similar is wrong
