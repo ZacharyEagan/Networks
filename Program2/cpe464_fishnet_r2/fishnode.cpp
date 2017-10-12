@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "fishnode.h"
-
+#include "checksum.h"
 
 
 static int noprompt = 0;
@@ -247,13 +247,22 @@ int main(int argc, char **argv)
        This is also the function that calls your implementation of fishnet L2
        protocols, such as ARP.
     */
-
-
-
 int fishnode_l2_receive(void *l2frame)
 {
-	   
+   //cast header
+   l2Header head;
+   memcpy (&head, l2frame, sizeof(head));
+   head.len = ntohs(head.len); //possible removal warrented
+   head.chk = ntohs(head.chk); //possible removal warrented  
 
-   return false; // if known fail
+   //check validity based on checksum
+   if (in_cksum(l2frame, head.len) != head.chk)
+      return false;
+   
+   //check addresses for validity
+
+   
+
+   //return false; // if known fail
    return true; //otherwise
 }
