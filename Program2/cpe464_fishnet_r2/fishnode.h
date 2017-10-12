@@ -11,8 +11,8 @@ void resolve_fnaddr(fnaddr_t addr, arp_resolution_cb cb, void *param);
 
 typedef struct l2Header
 {
-   fn_l2addr_t dst;
-   fn_l2addr_t src;
+   uint8_t dst[6];
+   uint8_t src[6];
    uint16_t chk;
    uint16_t len;
 } __attribute__((packed)) l2Header;
