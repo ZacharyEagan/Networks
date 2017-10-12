@@ -59,6 +59,8 @@ static void keyboard_callback(char *line)
 
 int main(int argc, char **argv)
 {
+   printf("Top\n");
+
    struct sigaction sa;
    int arg_offset = 1;
 
@@ -87,6 +89,7 @@ int main(int argc, char **argv)
 
 /*********  my code ************/
 
+   printf("Setting pointer!\n");
    fish_l2.fishnode_l2_receive = fishnode_l2_receive;
 
    
@@ -215,19 +218,6 @@ int main(int argc, char **argv)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
  /** \ingroup L2
        \brief Receives a new layer 2 frame from the layer 1 code in libfish.
           Decapsulates the frame and passes it up the stack as needed.
@@ -249,19 +239,63 @@ int main(int argc, char **argv)
     */
 int fishnode_l2_receive(void *l2frame)
 {
+   printf("pointer called\n");
    //cast header
    l2Header head;
+   fn_l2addr_t src, dst;
+   fn_l2addr_t zeros;
+   fn_l2addr_t ones;
+
+   
    memcpy (&head, l2frame, sizeof(head));
+
+   for (int i = 0; i < 6; i++)
+   {
+      zeros.l2addr[i] = 0;
+      ones.l2addr[i] = 0xFF;
+
+      src.l2addr[i] = head.src[i];
+      dst.l2addr[i] = head.dst[i];
+   }
+   
    head.len = ntohs(head.len); //possible removal warrented
    head.chk = ntohs(head.chk); //possible removal warrented  
-
+  
+   printf("src: %x:%x:%x:%x:%x:%x, ", head.src[0], head.src[1], 
+                                head.src[2], head.src[3],
+                                 head.src[4], head.src[5]);
+   printf("dst: %x:%x:%x:%x:%x:%x, len: %d, chk: %d\n",
+            head.dst[0], head.dst[1], head.dst[2], 
+            head.dst[3], head.dst[4], head.dst[5],
+            head.len, head.chk);
+   
+   
+   int chk;
    //check validity based on checksum
-   if (in_cksum(l2frame, head.len) != head.chk)
+   if ((chk = in_cksum(l2frame, head.len)))
+   {
+      printf("chcksm invalid: %d \n", chk);
       return false;
+   }
    
    //check addresses for validity
-
-   
+   if (FNL2_EQ(src, zeros))
+   {
+      printf("src zero\n");
+      return false;
+   }
+   if (FNL2_EQ(dst, zeros))
+   {
+      printf("dst zero\n");
+      return false;
+   }
+   if (FNL2_EQ(src, ones))
+   {
+      printf("src ones\n");
+      return false;
+   }
+    
+    
 
    //return false; // if known fail
    return true; //otherwise
