@@ -9,6 +9,12 @@ void send_arp_request(fnaddr_t l3addr);
 void add_arp_entry(fn_l2addr_t l2addr, fnaddr_t addr, int timeout);
 void resolve_fnaddr(fnaddr_t addr, arp_resolution_cb cb, void *param);
 
-
+typedef struct l2Header
+{
+   fn_l2addr_t dst;
+   fn_l2addr_t src;
+   uint16_t chk;
+   uint16_t len;
+} __attribute__((packed)) l2Header;
 
 #endif
