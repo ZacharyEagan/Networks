@@ -87,7 +87,7 @@ int main(int argc, char **argv)
    }
 
 
-/*********  my code ************/
+/******  my code insertion *****/
 
    printf("Setting pointer!\n");
    fish_l2.fishnode_l2_receive = fishnode_l2_receive;
@@ -245,7 +245,7 @@ int fishnode_l2_receive(void *l2frame)
    fn_l2addr_t src, dst;
    fn_l2addr_t zeros;
    fn_l2addr_t ones;
-
+   fn_l2addr_t carp;
    
    memcpy (&head, l2frame, sizeof(head));
 
@@ -260,7 +260,14 @@ int fishnode_l2_receive(void *l2frame)
    
    head.len = ntohs(head.len); //possible removal warrented
    head.chk = ntohs(head.chk); //possible removal warrented  
-  
+      
+
+   carp = fish_getl2address();
+   printf("carp: %x:%x:%x:%x:%x:%x\n", carp.l2addr[0], carp.l2addr[1], 
+                                       carp.l2addr[2], carp.l2addr[3],
+                                       carp.l2addr[4], carp.l2addr[5]);
+                                       
+    
    printf("src: %x:%x:%x:%x:%x:%x, ", head.src[0], head.src[1], 
                                 head.src[2], head.src[3],
                                  head.src[4], head.src[5]);
@@ -294,7 +301,14 @@ int fishnode_l2_receive(void *l2frame)
       printf("src ones\n");
       return false;
    }
-    
+   
+
+   if (FNL2_EQ(dst, carp) || FNL2_EQ(dst, ones))
+   {
+      printf("for me!\n");  
+      fish_l3.fish_l3_receive((void *)((char*)l2frame + sizeof(head)), head.len - sizeof(head));
+      
+   }
     
 
    //return false; // if known fail
