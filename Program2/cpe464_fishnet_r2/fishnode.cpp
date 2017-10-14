@@ -4,9 +4,8 @@
 #include <string.h>
 
 #include "fishnode.h"
-#include "checksum.h"
 
-
+#define DEBUG
 static int noprompt = 0;
 
 void sigint_handler(int sig)
@@ -91,7 +90,7 @@ int main(int argc, char **argv)
 
    printf("Setting pointer!\n");
    fish_l2.fishnode_l2_receive = fishnode_l2_receive;
-
+   fish_l2.fish_l2_send = fish_l2_send;
    
 /********* end my code ********/
 
@@ -199,9 +198,86 @@ int main(int argc, char **argv)
 
 
 
+  /** \ingroup L2
+     \brief Receives a new L3 frame to be sent over the network.
+       \arg \c l3frame A pointer to the L3 frame.  The original frame memory
+       must not be modified.  The caller is responsible for freeing any memory
+       after this function has completed.
+      \arg \c next_hop The L3 address of the neighbor this frame should be sent
+      to.
+      \arg \c len The length of the L3 frame
+       \return false if the send is known to have failed and true otherwise.
+      
+     This function takes to following steps to transmit \c l3frame:
+     \li Adds an L2 header to the frame
+     \li Uses the ARP cache to resolve the L3 address to L2 (see \ref ARP)
+     \li Calls fish_l1_send() to transmit the frame
+    */
+
+void callback(fn_l2addr_t addr, void *l2frame)
+{
+   l2Header *head; //for easy access to dst
+
+   if (FNL2_VALID(addr))  //check address 
+   {
+      printf("CallBack: Valid Address\n");
+      head = (l2Header *)l2frame; //copy dst the easy way
+      head->dst[0] = addr.l2addr[0]; 
+      head->dst[1] = addr.l2addr[1]; 
+      head->dst[2] = addr.l2addr[2]; 
+      head->dst[3] = addr.l2addr[3]; 
+      head->dst[4] = addr.l2addr[4]; 
+      head->dst[5] = addr.l2addr[5]; 
+ 
+   //compute the l2 checksum
+      head->chk = in_cksum(l2frame, ntohs(head->len));
+printf("headp->len = %d\n", head->len);
+printf("chk before ntohs = %x\n", head->chk);
+printf("in_cksum before = %d\n", in_cksum(l2frame, head->len));
+      //head->chk = ntohs(head->chk);
+printf("chk after ntohs = %x\n", head->chk);
+printf("in_cksum after = %d\n\n", in_cksum(l2frame, head->len));
+	
+      fish_l1_send(l2frame); //pas completed frame downstream
+   }
+
+   free(l2frame); //free the l2 frame alocated in fish_l2_send
+}
 
 
+//not sure how to know if send fails
+int fish_l2_send(void *l3frame, fnaddr_t next_hop, int len)
+{
+   l2Header head;
+   
+   fn_l2addr_t carp; //l2 address for src
+   carp = fish_getl2address(); //store src
+   
+   head.src[0] = carp.l2addr[0]; //copy src the easy way
+   head.src[1] = carp.l2addr[1];
+   head.src[2] = carp.l2addr[2];
+   head.src[3] = carp.l2addr[3];
+   head.src[4] = carp.l2addr[4];
+   head.src[5] = carp.l2addr[5];
+	
+   head.len = len + sizeof(head);
+   head.len = ntohs(head.len);
+   
+   head.chk = 0x0000;
 
+   void *l2frame = malloc(len + sizeof(head));//allocate mem fo l2
+   //freed in call back
+   
+   //combine the l2 header with the l3 frame
+   memcpy(l2frame, &head, sizeof(head));
+   memcpy((char *)l2frame + sizeof(head), l3frame, len);
+   
+
+   //start the arp cache lookup
+   fish_arp.resolve_fnaddr(next_hop, callback, l2frame);
+   
+   return true;
+}
 
 
 
@@ -263,6 +339,8 @@ int fishnode_l2_receive(void *l2frame)
       
 
    carp = fish_getl2address();
+
+   
    printf("carp: %x:%x:%x:%x:%x:%x\n", carp.l2addr[0], carp.l2addr[1], 
                                        carp.l2addr[2], carp.l2addr[3],
                                        carp.l2addr[4], carp.l2addr[5]);
@@ -277,37 +355,36 @@ int fishnode_l2_receive(void *l2frame)
             head.len, head.chk);
    
    
-   int chk;
+
    //check validity based on checksum
-   if ((chk = in_cksum(l2frame, head.len)))
+   if (in_cksum(l2frame, head.len))
    {
-      printf("chcksm invalid: %d \n", chk);
       return false;
    }
    
    //check addresses for validity
-   if (FNL2_EQ(src, zeros))
+   if (FNL2_EQ(src, zeros)) //src all 0 reserved
    {
       printf("src zero\n");
       return false;
    }
-   if (FNL2_EQ(dst, zeros))
+   if (FNL2_EQ(dst, zeros)) //dst all 0 reserved
    {
       printf("dst zero\n");
       return false;
    }
-   if (FNL2_EQ(src, ones))
+   if (FNL2_EQ(src, ones)) //src all ones reserved
    {
       printf("src ones\n");
       return false;
    }
    
 
-   if (FNL2_EQ(dst, carp) || FNL2_EQ(dst, ones))
+   if (FNL2_EQ(dst, carp) || FNL2_EQ(dst, ones)) //check pack relevent
    {
       printf("for me!\n");  
-      fish_l3.fish_l3_receive((void *)((char*)l2frame + sizeof(head)), head.len - sizeof(head));
-      
+      fish_l3.fish_l3_receive((void *)((char*)l2frame + sizeof(head)),
+                               head.len - sizeof(head));
    }
     
 
