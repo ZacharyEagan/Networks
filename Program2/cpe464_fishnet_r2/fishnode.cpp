@@ -5,7 +5,7 @@
 
 #include "fishnode.h"
 
-#define DEBUG
+//#define DEBUG
 static int noprompt = 0;
 
 void sigint_handler(int sig)
@@ -88,10 +88,11 @@ int main(int argc, char **argv)
 
 /******  my code insertion *****/
 
-   printf("Setting pointer!\n");
+   //printf("Setting pointer!\n");
    fish_l2.fishnode_l2_receive = fishnode_l2_receive;
    fish_l2.fish_l2_send = fish_l2_send;
-   
+   fish_arp.arp_received = arp_received;
+   fish_arp.send_arp_request = send_arp_request;
 /********* end my code ********/
 
 
@@ -154,48 +155,76 @@ int main(int argc, char **argv)
    return 0;
 }
 
+   /** \ingroup ARP
+     \brief This function creates and sends an ARP request for the given L3i
+        address
+        \arg \c l3addr The L3 address to send an ARP request for.
 
+        This function is called as part of fish_arp::resolve_fnaddr when no
+        entry is present in the ARP cache.  It must create and send an
+        appropiate ARP request frame.
+    */
+void send_arp_request(fnaddr_t l3addr)
+{
+   fnaddr_t broadcast = 0xFFFFFFFF;
+	arp_header l4;
+	l4.type = 1;
+	l4.type = htonl(l4.type);
+	memcpy(&(l4.l3), &l3addr, sizeof(l3addr));
+	fish_l3.fish_l3_send(&l4, sizeof(l4), broadcast, 9, 0);
+}
 
+void send_arp_resp(fnaddr_t ret)
+{
+   printf("sending arp response\n");
+	arp_header l4;
 
+	l4.type = 2;
+	l4.type = htonl(l4.type);
 
+   l4.l3 = fish_getaddress();
+   l4.l2 = fish_getl2address();
+   
+	fish_l3.fish_l3_send(&l4, sizeof(l4), ret, 9, 0);
+}
+ /** \ingroup ARP
+     \brief This function pointer gets called when an ARP frame arrives at the
+        node for processing.
+       \arg \c  l2frame A pointer to the L2 frame containing the ARP packet.
+       
+        The function is responsible for generating and processing ARP
+        responses.  It is necessary to call fish_arp::add_arp_entry as
+        part of processing an ARP response.  There is a built-in L2 handler
+        that calls this function for every ARP packet destined to this
+        fishnode.  The built-in handler AUTOMATICALLY DISABLES ITSELF when you
+        provide a pointer to your own arp_received implementation.  You must
+        add code to fish_l2::fishnode_l2_receive to call this function if you
+        override this function!
+    */
 
+void arp_received(void *l2frame)
+{
+  fnaddr_t src3;
+  fn_l2addr_t src2;
 
+  fnaddr_t dst3;
 
+  l2Header head2;
+  l3Header head;
+  
+  memcpy(&head2, l2frame, sizeof(head2));
+  memcpy(&head, (char *)l2frame + sizeof(l2Header), sizeof(head));  
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  memcpy(&src2, head2.src, sizeof(src2));
+  memcpy(&src3, head.src, sizeof(src3));
+  fish_arp.add_arp_entry(src2, src3, ARP_TIMEOUT);     
+  
+  memcpy(&dst3, head.dst, sizeof(dst3));
+  if (dst3 == fish_getaddress()) 
+  {
+      send_arp_resp(src3);
+  }
+}
 
 
   /** \ingroup L2
@@ -220,7 +249,7 @@ void callback(fn_l2addr_t addr, void *l2frame)
 
    if (FNL2_VALID(addr))  //check address 
    {
-      printf("CallBack: Valid Address\n");
+      //printf("CallBack: Valid Address\n");
       head = (l2Header *)l2frame; //copy dst the easy way
       head->dst[0] = addr.l2addr[0]; 
       head->dst[1] = addr.l2addr[1]; 
@@ -231,12 +260,7 @@ void callback(fn_l2addr_t addr, void *l2frame)
  
    //compute the l2 checksum
       head->chk = in_cksum(l2frame, ntohs(head->len));
-printf("headp->len = %d\n", head->len);
-printf("chk before ntohs = %x\n", head->chk);
-printf("in_cksum before = %d\n", in_cksum(l2frame, head->len));
       //head->chk = ntohs(head->chk);
-printf("chk after ntohs = %x\n", head->chk);
-printf("in_cksum after = %d\n\n", in_cksum(l2frame, head->len));
 	
       fish_l1_send(l2frame); //pas completed frame downstream
    }
@@ -244,7 +268,7 @@ printf("in_cksum after = %d\n\n", in_cksum(l2frame, head->len));
    free(l2frame); //free the l2 frame alocated in fish_l2_send
 }
 
-
+	
 //not sure how to know if send fails
 int fish_l2_send(void *l3frame, fnaddr_t next_hop, int len)
 {
@@ -280,20 +304,6 @@ int fish_l2_send(void *l3frame, fnaddr_t next_hop, int len)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  /** \ingroup L2
        \brief Receives a new layer 2 frame from the layer 1 code in libfish.
           Decapsulates the frame and passes it up the stack as needed.
@@ -315,7 +325,6 @@ int fish_l2_send(void *l3frame, fnaddr_t next_hop, int len)
     */
 int fishnode_l2_receive(void *l2frame)
 {
-   printf("pointer called\n");
    //cast header
    l2Header head;
    fn_l2addr_t src, dst;
@@ -339,22 +348,6 @@ int fishnode_l2_receive(void *l2frame)
       
 
    carp = fish_getl2address();
-
-   
-   printf("carp: %x:%x:%x:%x:%x:%x\n", carp.l2addr[0], carp.l2addr[1], 
-                                       carp.l2addr[2], carp.l2addr[3],
-                                       carp.l2addr[4], carp.l2addr[5]);
-                                       
-    
-   printf("src: %x:%x:%x:%x:%x:%x, ", head.src[0], head.src[1], 
-                                head.src[2], head.src[3],
-                                 head.src[4], head.src[5]);
-   printf("dst: %x:%x:%x:%x:%x:%x, len: %d, chk: %d\n",
-            head.dst[0], head.dst[1], head.dst[2], 
-            head.dst[3], head.dst[4], head.dst[5],
-            head.len, head.chk);
-   
-   
 
    //check validity based on checksum
    if (in_cksum(l2frame, head.len))
@@ -382,12 +375,20 @@ int fishnode_l2_receive(void *l2frame)
 
    if (FNL2_EQ(dst, carp) || FNL2_EQ(dst, ones)) //check pack relevent
    {
-      printf("for me!\n");  
-      fish_l3.fish_l3_receive((void *)((char*)l2frame + sizeof(head)),
-                               head.len - sizeof(head));
-   }
-    
+      l3Header arp_check;
+      memcpy (&arp_check, ((char *)l2frame + sizeof(head)), 
+              sizeof(arp_check));
 
-   //return false; // if known fail
+      if (arp_check.prot == 9) //its an arp
+      {
+         fish_arp.arp_received(l2frame);
+      }
+      else
+      {
+         fish_l3.fish_l3_receive((void *)((char*)l2frame + sizeof(head)),
+                              head.len - sizeof(head));
+      }
+   }
+
    return true; //otherwise
 }
