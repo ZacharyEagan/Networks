@@ -26,10 +26,10 @@ endif
 all:  fishnode-$(EXEC_SUFFIX)
 
 fishnode-$(EXEC_SUFFIX):  
-	$(CC) $(CFLAGS) $(OSINC) $(OSLIB) $(OSDEF) -o $@ fishnode.cpp checksum.c smartalloc.c libfish-$(EXEC_SUFFIX).a 
+	$(CC) $(CFLAGS) $(OSINC) $(OSLIB) $(OSDEF) -o $@ fishnode.cpp libfish-$(EXEC_SUFFIX).a 
 
 handin: README
-	handin bellardo 464_p1 README smartalloc.c smartalloc.h checksum.c checksum.h trace.c Makefile
+	handin bellardo 464_p2 README fishnode.cpp fishnode.h libfish.a Makefile
 
 clean:
 	-rm -rf fishnode-$(EXEC_SUFFIX) 
