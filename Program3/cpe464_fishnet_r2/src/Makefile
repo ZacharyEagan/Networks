@@ -8,7 +8,7 @@ PROC = $(shell uname -p)
 EXEC_SUFFIX=$(OS)-$(PROC)
 
 ifeq ("$(OS)", "SunOS")
-	OSLIB=-L/opt/csw/lib -R/opt/csw/lib -lsocket -lnsl -fpermisive
+	OSLIB=-L/opt/csw/lib -R/opt/csw/lib -lsocket -lnsl
 	OSINC=-I/opt/csw/include
 	OSDEF=-DSOLARIS
 else
@@ -25,11 +25,11 @@ endif
 
 all:  fishnode-$(EXEC_SUFFIX)
 
-fishnode-$(EXEC_SUFFIX):  
-	$(CC) $(CFLAGS) $(OSINC) $(OSLIB) $(OSDEF) -o $@  fishnode.cpp libfish-$(EXEC_SUFFIX).a smartalloc.c
+trace-$(EXEC_SUFFIX): fishnode.c
+	$(CC) $(CFLAGS) $(OSINC) $(OSLIB) $(OSDEF) -lpcap -o $@ trace.c checksum.c smartalloc.c
 
 handin: README
-	handin bellardo 464_p2 README fishnode.cpp fishnode.h libfish-Linux-x86_64.a fish.h smartalloc.h smartalloc.c Makefile
+	handin bellardo 464_p1 README smartalloc.c smartalloc.h checksum.c checksum.h trace.c Makefile
 
 clean:
-	-rm -rf fishnode-$(EXEC_SUFFIX) 
+	-rm -rf trace-* trace-*.dSYM

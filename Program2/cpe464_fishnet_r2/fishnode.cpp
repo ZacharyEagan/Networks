@@ -299,7 +299,8 @@ int fish_l2_send(void *l3frame, fnaddr_t next_hop, int len)
 
    //start the arp cache lookup
    fish_arp.resolve_fnaddr(next_hop, callback, l2frame);
-   
+  
+   free (l2frame); 
    return true;
 }
 
