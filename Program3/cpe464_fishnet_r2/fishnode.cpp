@@ -95,7 +95,7 @@ int main(int argc, char **argv)
  //  fish_arp.send_arp_request = send_arp_request;
 
 ///Base functionality
-//fish_l3.fishnode_l3_receive = fishnode_l3_receive;
+fish_l3.fishnode_l3_receive = fishnode_l3_receive;
 
 
 fish_l3.fish_l3_send = fish_l3_send;
@@ -304,12 +304,12 @@ int fish_l3_send(void *l4frame, int len, fnaddr_t dst_addr,
    head->ttl = ttl < MAX_TTL? ttl : MAX_TTL;
    head->prot = proto;
    head->dst = dst_addr;
-   head->src = fish_getaddress();
+   head->src = htonl(fish_getaddress());
    head->pid = fish_next_pktid();
 
-   /*printf("___________________\n");
-   printf("src %d, dst %d, pid %d\n", head->src, head->dst, head->pid);
-   printf("-------------------\n");*/
+   //printf("___________________\n");
+   //printf("src %d, dst %d, pid %d\n", head->src, head->dst, head->pid);
+   //printf("-------------------\n");
 
    ret = fish_l3.fish_l3_forward(l3Frame, len3);
 
@@ -347,27 +347,21 @@ int fish_l3_send(void *l4frame, int len, fnaddr_t dst_addr,
 int fish_l3_forward(void *l3frame, int len)
 {
 	l3Header *head = (l3Header *)l3frame;
-	if (head->dst == fish_getaddress() || head->ttl > 0) 
-	{
-		fnaddr_t next_hop = fish_fwd.longest_prefix_match(head->dst);
-		if (next_hop)
-		{
-			fish_l2.fish_l2_send(l3frame, next_hop, len);
-		}
-		else
-		{
-		   fish_fcmp.send_fcmp_response(l3frame, len, 1);
-			//next hop, invalid, drop and generate fcmp error
-			return false;
-		}
-	} 
-	else 
-	{
+
+   if (head->ttl == 0 && head->dst != fish_getaddress())
+   {
+	   fish_fcmp.send_fcmp_response(l3frame, len, 1);
+      return false;
+   }
+	fnaddr_t next_hop = fish_fwd.longest_prefix_match(head->dst);
+   if (!next_hop)
+   {
 	   fish_fcmp.send_fcmp_response(l3frame, len, 0);
-			//ttl invalid and non local dst, drop and generate fcmp error	
-		return false;
-	}
-	return true;
+      return false;
+   }
+   
+	return fish_l2.fish_l2_send(l3frame, next_hop, len); 
+
 }
 
 
