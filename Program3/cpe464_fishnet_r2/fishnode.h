@@ -4,9 +4,12 @@
 #define ARP_TIMEOUT 180
 
 ///Base functionality
-//fish_l3.fishnode_l3_receive
+// fish_l3.fishnode_l3_receive
 //fish_l3.fish_l3_send
 //fish_l3.fish_l3_forward
+int fishnode_l3_receive(void *l3frame, int len);
+int fish_l3_send(void * l4frame, int len, fnaddr_t dst_addr, uint8_t proto, uint8_t ttl);
+int fish_l3_forward(void *l3frame, int len);
 
 ///Full Functionality
 //fish_fwd.add_fwtable_entry
@@ -18,6 +21,11 @@
 //Forwarding Table 
 //Advanced DV Routing
 
+typedef struct pair
+{
+   fnaddr_t src;
+   fnaddr_t pid;
+} pair;
 
 typedef struct l2Header
 {
@@ -31,9 +39,9 @@ typedef struct l3Header
 {
    uint8_t ttl;
    uint8_t prot;
-   uint8_t pid[4];
-   uint8_t src[4];
-   uint8_t dst[4];
+   uint32_t pid;
+   fnaddr_t src;
+   fnaddr_t dst;
 } __attribute__((packed)) l3Header;
 
 typedef struct arp_header

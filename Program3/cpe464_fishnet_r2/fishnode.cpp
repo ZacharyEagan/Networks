@@ -5,7 +5,7 @@
 
 #include "fishnode.h"
 
-//#define DEBUG
+#define DEBUG
 static int noprompt = 0;
 
 void sigint_handler(int sig)
@@ -93,6 +93,21 @@ int main(int argc, char **argv)
  //  fish_l2.fish_l2_send = fish_l2_send;
  //  fish_arp.arp_received = arp_received;
  //  fish_arp.send_arp_request = send_arp_request;
+
+///Base functionality
+//fish_l3.fishnode_l3_receive = fishnode_l3_receive;
+
+
+fish_l3.fish_l3_send = fish_l3_send;
+
+fish_l3.fish_l3_forward = fish_l3_forward;
+
+///Full Functionality
+//fish_fwd.add_fwtable_entry = add_fwtable_entry;
+//fish_fwd.remove_fwtable_entry = remove_fwtable_entry;
+//fish_fwd.update_fwtable_metric = update_fwtable_metric;
+//fish_fwd.longest_prefix_match = longest_prefix_match;
+
 /********* end my code ********/
 
 
@@ -154,4 +169,210 @@ int main(int argc, char **argv)
 
    return 0;
 }
+
+   /** \ingroup L3
+       \brief Receives a new layer 3 frame from FishnetL3Funcs::fish_l3_receive.
+          Decapsulates the frame and forwards it or passes it the L4 as needed.
+       \arg \c l3frame A pointer to the received L3 frame.  The only part of
+          the frame that can be modified is the TTL header field.  The caller
+          will free the memory for the frame as necessary.
+       \arg \c len The length of the layer 3 frame, in host byte order
+       \return false if the receive is known to have failed and true otherwise.
+
+       This function is responsible for correctly directing packets to the
+       higher network layers or to the forwarding engine.  This requires
+       following general steps:
+
+       \li If the L3 destination is the node's L3 address, remove the L3 header
+       and pass the frame to the L4 code.
+       \li If the L3 destination is the broadcast address AND the frame was
+       received by this node previously (use the compination of src L3 address
+       and packet ID to determine this), drop the frame without sending an FCMP
+       message.
+       \li Otherwise, if the L3 destination is the broadcast address, the frame
+       must be both passed up the network stack and forwarded back out over the
+       fishnet with a decremented TTL.
+       \li If the L3 addresses isn't the broadcast address and the L3 address
+       isn't the node's address, the TTL is decremented and the frame is
+       forwarded back over the fishnet.
+
+       This is also the function that calls your implementation of fishnet L3
+       protocols, such as DV routing.
+      */
+int fishnode_l3_receive(void *l3frame, int len)
+{
+   static uint32_t size = 20;
+   static uint32_t *src = NULL;    
+   static uint32_t *pid = NULL;   
+   static uint32_t count = 0;
+   
+   l3Header *head3 = (l3Header *)l3frame;
+   fnaddr_t mine = fish_getaddress();
+   void *l4frame = (void *)((char *)l3frame + sizeof(l3Header));
+
+
+   if (src == NULL)
+   {
+      src = (uint32_t *)malloc(size * sizeof(uint32_t));
+   }
+   if (pid == NULL)
+   {
+      pid = (uint32_t *)malloc(size * sizeof(uint32_t));
+   }
+
+   int repete = 0;
+   for (uint32_t cur = count; cur--;)
+   {
+      if (src[cur] == head3->src && pid[cur] == head3->pid)
+      {
+         repete = 1;
+         break;
+      }
+   }
+   if (!repete)
+   {
+      if (count > size / 2)
+      {
+         size *= 2;
+         src = (uint32_t *)realloc(src, size * sizeof(uint32_t));
+         pid = (uint32_t *)realloc(pid, size * sizeof(uint32_t));
+      }
+      src[count] = head3->src;
+      pid[count] = head3->pid;
+      count++;
+   }
+
+
+   if (head3->dst == mine)
+   {
+      return fish_l4.fish_l4_receive(l4frame,len - sizeof(l3Header), head3->prot, head3->src);
+   }
+   else
+   {
+      if (head3->dst == ALL_NEIGHBORS)
+      {
+         if (!repete)
+         {
+            //do stuff 
+            head3->ttl--;
+            fish_l3_forward(l3frame, len);
+            return fish_l4.fish_l4_receive(l4frame,len - sizeof(l3Header), head3->prot, head3->src);
+            
+         }
+         else
+         {
+            return false;
+         }
+      } 
+      else
+      {
+         head3->ttl--;
+         return fish_l3_forward(l3frame, len);
+      }
+   }
+
+   return true;	
+}
+
+
+
+ /** \ingroup L3
+       \brief Receives a new L4 frame to be sent over the network.
+       \arg \c l4frame A pointer to the L4 frame.  The original frame memory
+       must not be modified.  The caller is responsible for freeing any memory
+       after this function has completed.
+      \arg \c len The length of the L4 frame
+      \arg \c dst_addr The L3 address of the final destination for this frame.
+      \arg \c proto The fishnet protocol number of the L4 frame
+      \arg \c ttl The TTL for the frame, or 0 to use the maximum TTL.  If the TTL is greater than the maximum TTL, set it to the maximum TTL.
+       \return false if the send is known to have failed and true otherwise.
+      
+      This functoin is responsible for encapsulating a L4 frame in a L3 header
+      and then forwarding the packet through the fishnet.  Forwarding is
+      accomplished by calling the fish_l3_forward() function.
+    */
+int fish_l3_send(void *l4frame, int len, fnaddr_t dst_addr, 
+                  uint8_t proto, uint8_t ttl)
+{  
+   int ret;
+   int len3 = sizeof(l3Header) + len * sizeof(char);
+   l3Header *head;
+   char *l3Frame = (char *)calloc(1, len3);
+
+   head = (l3Header *)l3Frame;
+   memcpy(l3Frame + sizeof(l3Header), l4frame, sizeof(char) * len);
+   head->ttl = ttl < MAX_TTL? ttl : MAX_TTL;
+   head->prot = proto;
+   head->dst = dst_addr;
+   head->src = fish_getaddress();
+   head->pid = fish_next_pktid();
+
+   /*printf("___________________\n");
+   printf("src %d, dst %d, pid %d\n", head->src, head->dst, head->pid);
+   printf("-------------------\n");*/
+
+   ret = fish_l3.fish_l3_forward(l3Frame, len3);
+
+   free(l3Frame);
+   return ret;
+}
+
+
+
+   /** \ingroup L3
+       \brief Takes an already-encapsulated L3 frame, looks up the destination
+        in the forwarding table, and passes the frame off to L2.
+        \arg \c l3frame A pointer to the L3 frame.  Note that this is different
+        than fish_l3_send which takes a L4 frame.  The original frame memory
+        must not be modified.  The caller is responsible for freeing any
+        memory after this function has completed.
+        \arg \c len The length of the L3 frame.
+       \return false if the send is known to have failed (e.g., TTL exceeded)
+         and true otherwise.
+     
+     fish_l3_forward is given a L3 encapsulated frame and is responsible for
+     delivering it. This requires the following steps:
+       \li If the TTL is 0 and the destination is not local, drop the packet and
+       generate the correct FCMP error message.
+       \li Lookup the L3 destination in the forwarding table.
+       \li If there is no route to the destination, drop the frame and generate
+       the correct FCMP error.
+       \li Use fish_l2_send to send the frame to the next-hop neighbor indicated
+       by the forwarding table.
+
+
+     This function may be called from a number of other places in the code,
+     including fish_l3_send and fishnode_l3_receive.
+     */
+int fish_l3_forward(void *l3frame, int len)
+{
+	l3Header *head = (l3Header *)l3frame;
+	if (head->dst == fish_getaddress() || head->ttl > 0) 
+	{
+		fnaddr_t next_hop = fish_fwd.longest_prefix_match(head->dst);
+		if (next_hop)
+		{
+			fish_l2.fish_l2_send(l3frame, next_hop, len);
+		}
+		else
+		{
+		   fish_fcmp.send_fcmp_response(l3frame, len, 1);
+			//next hop, invalid, drop and generate fcmp error
+			return false;
+		}
+	} 
+	else 
+	{
+	   fish_fcmp.send_fcmp_response(l3frame, len, 0);
+			//ttl invalid and non local dst, drop and generate fcmp error	
+		return false;
+	}
+	return true;
+}
+
+
+
+
+
+
 
