@@ -5,7 +5,7 @@
 
 #include "fishnode.h"
 
-#define DEBUG
+//#define DEBUG
 static int noprompt = 0;
 
 void sigint_handler(int sig)
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
  //  fish_arp.send_arp_request = send_arp_request;
 
 ///Base functionality
-//fish_l3.fishnode_l3_receive = fishnode_l3_receive;
+fish_l3.fishnode_l3_receive = fishnode_l3_receive;
 
 fish_l3.fish_l3_send = fish_l3_send;
 
@@ -208,7 +208,7 @@ int fishnode_l3_receive(void *l3frame, int len)
    l3Header *head3 = (l3Header *)l3frame;
    fnaddr_t mine = fish_getaddress();
    void *l4frame = (void *)((char *)l3frame + sizeof(l3Header));
-
+   int answer = 1;
 
    if (src == NULL)
    {
@@ -242,8 +242,18 @@ int fishnode_l3_receive(void *l3frame, int len)
    }
 
 
+//-------------------------
+//   printf("----------------Recieve-----------------\n");
+//   printf("size: %d, count: %d\n", size, count);
+//   printf("repete: %d\n", repete);  
+//   printf("src: %d, dst: %d, mine: %d, pid: %d, prot: %d, ttl: %d, len: %d\n",head3->src, head3->dst, mine, head3->pid, head3->prot, head3->ttl, len);
+
+
+
    if (head3->dst == mine)
-   {
+   {  
+//      printf("pass up to fish_l4_recieve\n");
+//      printf("________________________________________\n\n");
       return fish_l4.fish_l4_receive(l4frame,len - sizeof(l3Header), head3->prot, head3->src);
    }
    else
@@ -252,24 +262,36 @@ int fishnode_l3_receive(void *l3frame, int len)
       {
          if (!repete)
          {
-            //do stuff 
+//            printf("decriment ttl, forward on and pass up to fish_l4_recieve\n");
+            //do stuff
+            answer = fish_l4.fish_l4_receive(l4frame,len - sizeof(l3Header), head3->prot, head3->src);
+//            printf("________________________________________\n\n");
             head3->ttl--;
-            fish_l3_forward(l3frame, len);
-            return fish_l4.fish_l4_receive(l4frame,len - sizeof(l3Header), head3->prot, head3->src);
-            
+            //if (head3->src == mine || head3->ttl > 0)
+            if (head3->ttl > 0)
+               fish_l3_forward(l3frame, len);
+            return answer;             
          }
          else
          {
+            //printf("drop it low\n");
+            //printf("________________________________________\n\n");
             return false;
          }
       } 
       else
       {
+//         printf("decriment ttl forward on\n");
+//         printf("________________________________________\n\n");
          head3->ttl--;
-         return fish_l3_forward(l3frame, len);
+          if (head3->ttl > 0) //this is probably the problem if somthing is going wrong
+            answer = fish_l3_forward(l3frame, len);
+         return answer;       
       }
    }
 
+//   printf("missed somthing returning true\n");
+//   printf("________________________________________\n\n");
    return true;	
 }
 
