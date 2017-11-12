@@ -95,10 +95,9 @@ int main(int argc, char **argv)
  //  fish_arp.send_arp_request = send_arp_request;
 
 ///Base functionality
-fish_l3.fishnode_l3_receive = fishnode_l3_receive;
+//fish_l3.fishnode_l3_receive = fishnode_l3_receive;
 
-
-fish_l3.fish_l3_send = fish_l3_send;
+//fish_l3.fish_l3_send = fish_l3_send;
 
 fish_l3.fish_l3_forward = fish_l3_forward;
 
@@ -347,19 +346,40 @@ int fish_l3_send(void *l4frame, int len, fnaddr_t dst_addr,
 int fish_l3_forward(void *l3frame, int len)
 {
 	l3Header *head = (l3Header *)l3frame;
+   uint32_t src = ntohl(head->src);
+   uint32_t dst = ntohl(head->dst);
+  // uint32_t pid = ntohl(head->pid);
 
-   if (head->ttl == 0 && head->dst != fish_getaddress())
+  // printf("--------------------Forward--------------------------\n");
+  // printf("len: %d, TTL: %d, Prot: %d, PID: %d, SRC: %d, DST: %d\n", len, head->ttl, head->prot, 
+  //          pid, src, dst);
+
+   //ttl exceded and not a broadcast and not for me and not an fcmp message
+   if (head->ttl == 0 && dst != ntohl(fish_getaddress()) && dst != ALL_NEIGHBORS && head->prot != 8)
    {
-	   fish_fcmp.send_fcmp_response(l3frame, len, 1);
+    //  printf("Broadcast fcmp 1\n___________________________________________\n\n");
+	   fish_fcmp.send_fcmp_response(l3frame, len, 1); //send ttl exceded
       return false;
    }
 	fnaddr_t next_hop = fish_fwd.longest_prefix_match(head->dst);
-   if (!next_hop)
+   if (!next_hop && head->prot != 8 && src != ALL_NEIGHBORS && dst != ALL_NEIGHBORS)
    {
+    //  printf("Broadcast fcmp 0\n___________________________________________\n\n");
 	   fish_fcmp.send_fcmp_response(l3frame, len, 0);
       return false;
    }
-   
+   //printf("src: %d, fishaddress: %d, dst: %d, allneigh: %d\n", src, ntohl(fish_getaddress()), dst, ALL_NEIGHBORS);
+   if (src == ntohl(fish_getaddress()) && dst == ALL_NEIGHBORS && head->ttl != 0)
+   {
+     // printf("Send to dst: %d\n______________________________________\n\n", ntohl(dst));
+      return fish_l2.fish_l2_send(l3frame, head->dst, len);
+   }
+   if (!next_hop)
+   {
+     // printf("Drop It LOW\n___________________________________________\n\n");
+      return false;
+   }
+  // printf("Send to dst: %d\n______________________________________\n\n", ntohl(next_hop));
 	return fish_l2.fish_l2_send(l3frame, next_hop, len); 
 
 }
