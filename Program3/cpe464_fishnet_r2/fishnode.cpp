@@ -219,10 +219,10 @@ int fishnode_l3_receive(void *l3frame, int len)
       pid = (uint32_t *)malloc(size * sizeof(uint32_t));
    }
 
-   if (!((head3->prot >= 2 && head3->prot <= 4) || (head3->prot >= 7 && head3->prot <= 9)))
-      return false;
-   if ((unsigned)len < (sizeof(head3) + 1))
-      return false;
+ //  if (!((head3->prot >= 2 && head3->prot <= 4) || (head3->prot >= 7 && head3->prot <= 9)))
+ //     return false;
+ //  if ((unsigned)len < (sizeof(head3) + 1))
+ //     return false;
 
    int repete = 0;
    for (uint32_t cur = count; cur--;)
