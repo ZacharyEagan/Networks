@@ -275,8 +275,8 @@ int fishnode_l3_receive(void *l3frame, int len)
             //if (head3->src == mine || head3->ttl > 0)
             if (head3->ttl > 0)
             {
-  //             printf("sending out, ttl: %d\n", head3->ttl);
-    //        printf("________________________________________\n\n");
+         //      printf("A) sending out, ttl: %d\n", head3->ttl);
+         //   printf("________________________________________\n\n");
                fish_l3_forward(l3frame, len);
             }
             return answer;             
@@ -293,10 +293,10 @@ int fishnode_l3_receive(void *l3frame, int len)
 //         printf("decriment ttl forward on\n");
 //         printf("________________________________________\n\n");
          head3->ttl--;
-          if (head3->ttl > 0) //this is probably the problem if somthing is going wrong
+          if (head3->src != ALL_NEIGHBORS && head3->ttl > 0) //this is probably the problem if somthing is going wrong
           {
-      //        printf("sending out, ttl: %d\n", head3->ttl);
-        // printf("________________________________________\n\n");
+     //         printf("B) sending out, ttl: %d\n", head3->ttl);
+     //    printf("________________________________________\n\n");
             answer = fish_l3_forward(l3frame, len);
             return answer;       
           }
