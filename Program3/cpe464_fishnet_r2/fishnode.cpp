@@ -293,7 +293,7 @@ int fishnode_l3_receive(void *l3frame, int len)
 //         printf("decriment ttl forward on\n");
 //         printf("________________________________________\n\n");
          head3->ttl--;
-          if (head3->src != ALL_NEIGHBORS && head3->ttl > 0) //this is probably the problem if somthing is going wrong
+          if (head3->src != ALL_NEIGHBORS && head3->ttl > 0 && !repete) //this is probably the problem if somthing is going wrong
           {
      //         printf("B) sending out, ttl: %d\n", head3->ttl);
      //    printf("________________________________________\n\n");
