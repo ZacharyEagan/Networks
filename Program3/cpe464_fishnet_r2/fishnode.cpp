@@ -205,10 +205,17 @@ int fishnode_l3_receive(void *l3frame, int len)
    static uint32_t *pid = NULL;   
    static uint32_t count = 0;
    
-   l3Header *head3 = (l3Header *)l3frame;
+
+   void *l3frameOut = malloc(len);
+   memcpy (l3frameOut, l3frame, len);
+   l3Header *head3 = (l3Header *)l3frameOut;
+
+   void *l4frame = malloc(len - sizeof(l3Header));
+   memcpy(l4frame, head3 + 1, len - sizeof(l3Header));
+
    fnaddr_t mine = fish_getaddress();
-   void *l4frame = (void *)((char *)l3frame + sizeof(l3Header));
-   int answer = 1;
+
+   int answer = true;
 
    if (src == NULL)
    {
@@ -219,10 +226,6 @@ int fishnode_l3_receive(void *l3frame, int len)
       pid = (uint32_t *)malloc(size * sizeof(uint32_t));
    }
 
- //  if (!((head3->prot >= 2 && head3->prot <= 4) || (head3->prot >= 7 && head3->prot <= 9)))
- //     return false;
- //  if ((unsigned)len < (sizeof(head3) + 1))
- //     return false;
 
    int repete = 0;
    for (uint32_t cur = count; cur--;)
@@ -247,65 +250,51 @@ int fishnode_l3_receive(void *l3frame, int len)
    }
 
 
-//-------------------------
-//   printf("----------------Recieve-----------------\n");
-//   printf("size: %d, count: %d\n", size, count);
-//   printf("repete: %d\n", repete);  
-//   printf("src: %d, dst: %d, mine: %d, pid: %d, prot: %d, ttl: %d, len: %d\n",head3->src, head3->dst, mine, head3->pid, head3->prot, head3->ttl, len);
-
-
-
+   //l3->dst == mine
    if (head3->dst == mine)
-   {  
-//      printf("pass up to fish_l4_recieve\n");
-//      printf("________________________________________\n\n");
-      return fish_l4.fish_l4_receive(l4frame,len - sizeof(l3Header), head3->prot, head3->src);
-   }
-   else
    {
-      if (head3->dst == ALL_NEIGHBORS)
-      {
-         if (!repete)
-         {
-//            printf("decriment ttl, forward on and pass up to fish_l4_recieve\n");
-            //do stuff
-            answer = fish_l4.fish_l4_receive(l4frame,len - sizeof(l3Header), head3->prot, head3->src);
-
-            head3->ttl--;
-            //if (head3->src == mine || head3->ttl > 0)
-            if (head3->ttl > 0)
-            {
-         //      printf("A) sending out, ttl: %d\n", head3->ttl);
-         //   printf("________________________________________\n\n");
-               fish_l3_forward(l3frame, len);
-            }
-            return answer;             
-         }
-         else
-         {
-            //printf("drop it low\n");
-            //printf("________________________________________\n\n");
-            return false;
-         }
-      } 
-      else
-      {
-//         printf("decriment ttl forward on\n");
-//         printf("________________________________________\n\n");
-         head3->ttl--;
-          if (head3->src != ALL_NEIGHBORS && head3->ttl > 0 && !repete) //this is probably the problem if somthing is going wrong
-          {
-     //         printf("B) sending out, ttl: %d\n", head3->ttl);
-     //    printf("________________________________________\n\n");
-            answer = fish_l3_forward(l3frame, len);
-            return answer;       
-          }
-      }
+   //   fprintf(stderr, "Recieve: option 1: prot %d, src: %d dst: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst));
+      answer = fish_l4.fish_l4_receive(l4frame, len - sizeof(l3Header), head3->prot, head3->src);
+      free (l3frameOut);
+      free (l4frame);   
+      return answer;
+   }
+   
+   //l3->dst == 0xff && repete
+   if (head3->dst == ALL_NEIGHBORS && repete)
+   {
+   //   fprintf(stderr, "Recieve: option 2: prot %d, src: %d dst: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst));
+      free (l3frameOut);
+      free (l4frame);
+      return answer;
+   }
+   
+   //l3->dst == 0xff && !repete
+   if (head3->dst == ALL_NEIGHBORS && !repete)
+   {
+   //   fprintf(stderr, "Recieve: option 3: prot %d, src: %d dst: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst));
+      answer = fish_l4.fish_l4_receive(l4frame, len - sizeof(l3Header), head3->prot, head3->src);
+      head3->ttl--;
+      //maybe need to check if 0?
+      if (head3->ttl > 0)
+         answer = fish_l3_forward(l3frameOut, len);   
+      free (l3frameOut);
+      free (l4frame);    
+      return answer;
    }
 
-//   printf("missed somthing returning true\n");
-//   printf("________________________________________\n\n");
-   return true;	
+   if (head3->dst != ALL_NEIGHBORS && head3->dst != mine)
+   {
+   //   fprintf(stderr, "Recieve: option 4: prot %d, src: %d dst: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst));
+      head3->ttl--;
+      if (head3->ttl > answer)
+         answer = fish_l3_forward(l3frameOut, len);
+      free (l3frameOut);
+      free (l4frame);
+      return answer;
+   }
+   //fprintf(stderr, "Recieve: option 5: prot %d, src: %d dst: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst));
+   return answer;	
 }
 
 
