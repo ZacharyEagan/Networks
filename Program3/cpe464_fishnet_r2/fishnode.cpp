@@ -248,10 +248,10 @@ int fishnode_l3_receive(void *l3frame, int len)
 
 
 //-------------------------
-   printf("----------------Recieve-----------------\n");
-   printf("size: %d, count: %d\n", size, count);
-   printf("repete: %d\n", repete);  
-   printf("src: %d, dst: %d, mine: %d, pid: %d, prot: %d, ttl: %d, len: %d\n",head3->src, head3->dst, mine, head3->pid, head3->prot, head3->ttl, len);
+//   printf("----------------Recieve-----------------\n");
+//   printf("size: %d, count: %d\n", size, count);
+//   printf("repete: %d\n", repete);  
+//   printf("src: %d, dst: %d, mine: %d, pid: %d, prot: %d, ttl: %d, len: %d\n",head3->src, head3->dst, mine, head3->pid, head3->prot, head3->ttl, len);
 
 
 
@@ -275,8 +275,8 @@ int fishnode_l3_receive(void *l3frame, int len)
             //if (head3->src == mine || head3->ttl > 0)
             if (head3->ttl > 0)
             {
-               printf("sending out, ttl: %d\n", head3->ttl);
-            printf("________________________________________\n\n");
+  //             printf("sending out, ttl: %d\n", head3->ttl);
+    //        printf("________________________________________\n\n");
                fish_l3_forward(l3frame, len);
             }
             return answer;             
@@ -295,8 +295,8 @@ int fishnode_l3_receive(void *l3frame, int len)
          head3->ttl--;
           if (head3->ttl > 0) //this is probably the problem if somthing is going wrong
           {
-              printf("sending out, ttl: %d\n", head3->ttl);
-         printf("________________________________________\n\n");
+      //        printf("sending out, ttl: %d\n", head3->ttl);
+        // printf("________________________________________\n\n");
             answer = fish_l3_forward(l3frame, len);
             return answer;       
           }
@@ -343,9 +343,9 @@ int fish_l3_send(void *l4frame, int len, fnaddr_t dst_addr,
    head->src = fish_getaddress();
    head->pid = htonl(fish_next_pktid());
 
-   printf("-------------------------SEND------------------\n");
-   printf("len: %d, ttl: %d, prot: %d, src %d, dst %d, pid %d\n",len, head->ttl, head->prot, head->src, head->dst, head->pid);
-   printf("-----------------------------------------------\n");
+//   printf("-------------------------SEND------------------\n");
+//   printf("len: %d, ttl: %d, prot: %d, src %d, dst %d, pid %d\n",len, head->ttl, head->prot, head->src, head->dst, head->pid);
+//   printf("-----------------------------------------------\n");
 
    ret = fish_l3.fish_l3_forward(l3Frame, len3);
 
@@ -385,11 +385,11 @@ int fish_l3_forward(void *l3frame, int len)
 	l3Header *head = (l3Header *)l3frame;
    uint32_t src = ntohl(head->src);
    uint32_t dst = ntohl(head->dst);
-   uint32_t pid = ntohl(head->pid);
+//   uint32_t pid = ntohl(head->pid);
 
-printf("--------------------Forward--------------------------\n");
-printf("len: %d, TTL: %d, Prot: %d, PID: %d, SRC: %d, DST: %d\n", len, head->ttl, head->prot, 
-            pid, src, dst);
+//printf("--------------------Forward--------------------------\n");
+//printf("len: %d, TTL: %d, Prot: %d, PID: %d, SRC: %d, DST: %d\n", len, head->ttl, head->prot, 
+//            pid, src, dst);
 
    //ttl exceded and not a broadcast and not for me and not an fcmp message
    if (head->ttl == 0 && dst != ntohl(fish_getaddress()) && dst != ALL_NEIGHBORS && head->prot != 8)
