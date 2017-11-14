@@ -209,6 +209,8 @@ int fishnode_l3_receive(void *l3frame, int len)
    void *l3frameOut = malloc(len);
    memcpy (l3frameOut, l3frame, len);
    l3Header *head3 = (l3Header *)l3frameOut;
+   //printf ("------------Recieve----dst: %d, src: %d, prot %d, ttl: %d\n", head3->dst, head3->src, head3->prot, head3->ttl);
+
 
    void *l4frame = malloc(len - sizeof(l3Header));
    memcpy(l4frame, head3 + 1, len - sizeof(l3Header));
@@ -225,7 +227,6 @@ int fishnode_l3_receive(void *l3frame, int len)
    {
       pid = (uint32_t *)malloc(size * sizeof(uint32_t));
    }
-
 
    int repete = 0;
    for (uint32_t cur = count; cur--;)
@@ -272,11 +273,12 @@ int fishnode_l3_receive(void *l3frame, int len)
    //l3->dst == 0xff && !repete
    if (head3->dst == ALL_NEIGHBORS && !repete)
    {
-   //   fprintf(stderr, "Recieve: option 3: prot %d, src: %d dst: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst));
+
       answer = fish_l4.fish_l4_receive(l4frame, len - sizeof(l3Header), head3->prot, head3->src);
       head3->ttl--;
+//      fprintf(stderr, "Recieve: option 3: prot %d, src: %d dst: %d, TTL: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst), head3->ttl);
       //maybe need to check if 0?
-      if (head3->ttl > 0)
+      if (head3->ttl > 0 && head3->src != ALL_NEIGHBORS)
          answer = fish_l3_forward(l3frameOut, len);   
       free (l3frameOut);
       free (l4frame);    
@@ -285,10 +287,14 @@ int fishnode_l3_receive(void *l3frame, int len)
 
    if (head3->dst != ALL_NEIGHBORS && head3->dst != mine)
    {
-   //   fprintf(stderr, "Recieve: option 4: prot %d, src: %d dst: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst));
+//      fprintf(stderr, "Recieve: option 4: prot %d, src: %d dst: %d, TTL: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst), head3->ttl);
       head3->ttl--;
-      if (head3->ttl > answer)
+      if (head3->ttl > 0)
          answer = fish_l3_forward(l3frameOut, len);
+      else
+         if (head3->src != ALL_NEIGHBORS)
+            fish_fcmp.send_fcmp_response(l3frame, len, 1);
+
       free (l3frameOut);
       free (l4frame);
       return answer;
@@ -376,8 +382,8 @@ int fish_l3_forward(void *l3frame, int len)
    uint32_t dst = ntohl(head->dst);
 //   uint32_t pid = ntohl(head->pid);
 
-//printf("--------------------Forward--------------------------\n");
-//printf("len: %d, TTL: %d, Prot: %d, PID: %d, SRC: %d, DST: %d\n", len, head->ttl, head->prot, 
+//fprintf(stderr, "--------------------Forward--------------------------\n");
+//fprintf(stderr, "len: %d, TTL: %d, Prot: %d, PID: %d, SRC: %d, DST: %d\n\n\n", len, head->ttl, head->prot, 
 //            pid, src, dst);
 
    //ttl exceded and not a broadcast and not for me and not an fcmp message
