@@ -217,6 +217,12 @@ int fishnode_l3_receive(void *l3frame, int len)
 
    fnaddr_t mine = fish_getaddress();
 
+   if (head3->src == ALL_NEIGHBORS)
+   {
+      return false;
+   }
+
+
    int answer = true;
 
    if (src == NULL)
@@ -276,7 +282,7 @@ int fishnode_l3_receive(void *l3frame, int len)
 
       answer = fish_l4.fish_l4_receive(l4frame, len - sizeof(l3Header), head3->prot, head3->src);
       head3->ttl--;
-//      fprintf(stderr, "Recieve: option 3: prot %d, src: %d dst: %d, TTL: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst), head3->ttl);
+//    fprintf(stderr, "Recieve: option 3: prot %d, src: %d dst: %d, TTL: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst), head3->ttl);
       //maybe need to check if 0?
       if (head3->ttl > 0 && head3->src != ALL_NEIGHBORS)
          answer = fish_l3_forward(l3frameOut, len);   
@@ -287,7 +293,7 @@ int fishnode_l3_receive(void *l3frame, int len)
 
    if (head3->dst != ALL_NEIGHBORS && head3->dst != mine)
    {
-//      fprintf(stderr, "Recieve: option 4: prot %d, src: %d dst: %d, TTL: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst), head3->ttl);
+//    fprintf(stderr, "Recieve: option 4: prot %d, src: %d dst: %d, TTL: %d\n", head3->prot, ntohl(head3->src), ntohl(head3->dst), head3->ttl);
       head3->ttl--;
       if (head3->ttl > 0)
          answer = fish_l3_forward(l3frameOut, len);
