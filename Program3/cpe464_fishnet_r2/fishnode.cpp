@@ -200,7 +200,7 @@ fish_l3.fish_l3_forward = fish_l3_forward;
       */
 int fishnode_l3_receive(void *l3frame, int len)
 {
-   static uint32_t size = 20;
+   static uint32_t size = 65535;
    static uint32_t *src = NULL;    
    static uint32_t *pid = NULL;   
    static uint32_t count = 0;
