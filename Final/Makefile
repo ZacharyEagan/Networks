@@ -29,7 +29,7 @@ server-$(EXEC_SUFFIX):
 	$(CC) $(CFLAGS) $(OSINC) $(OSLIB) $(OSDEF) -o $@ main.c  smartalloc.c
 
 handin: README
-	handin bellardo 464_p4 README main.c smartalloc.h smartalloc.c Makefile
+	handin bellardo 464_p4 README json-server.c json-server.h extrafile.h  smartalloc.h smartalloc.c Makefile
 
 clean:
 	-rm -rf *.o *.out *.a server-$(EXEC_SUFFIX)
