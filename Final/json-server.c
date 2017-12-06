@@ -121,6 +121,43 @@ void bind_socket(int sfd, struct sockaddr_in6 *addr)
    fflush(stdout);
 }
 
+void add_array(int *sfds, int *count, int *cap, int new_sfd)
+{
+   if (*count > *cap / 2)
+   {
+      *cap *= 2;
+      sfds = realloc(sfds, *cap * sizeof (int));
+
+      fprintf (stderr, "add_array: expanded, cap = %d, count = %d\n",
+                        *cap, *count);
+      for (int i = 0; i < *count; i++)
+      {
+         fprintf(stderr, "add_array: cur = %d, id = %d\n", i, sfds[i]);
+      }
+   }
+
+   sfds[*count] = new_sfd;
+   (*count)++;
+}
+
+int sub_array(int *sfds, int *count, int rem_sfd)
+{
+   int ret = 0;
+   for (int i = 0; i < *count; i++)
+   {
+      if (sfds[i] == rem_sfd)
+      {
+         ret = 1;
+         sfds[i] = sfds[i + 1];
+         sfds[i + 1] = rem_sfd;
+      }
+   }
+   if (ret)
+      (*count)--;
+   return ret;
+}
+
+
 int main(int argc, char *argv[])
 {
    /* set signal handler for ctrl-c */
@@ -142,6 +179,11 @@ int main(int argc, char *argv[])
    /* set to nonblocking since from now on we need to do many things */
    fcntl(sfd, F_SETFL, O_NONBLOCK);
 
+   /* setup for extendable array */
+   int count = 0;
+   int cap = 5;
+   int *sfds = malloc(cap * sizeof (int));
+
    /* Variables for the select */
    fd_set rfds;
    struct timeval tv;
@@ -160,8 +202,12 @@ int main(int argc, char *argv[])
    
       FD_ZERO(&rfds);
       FD_SET(sfd, &rfds);
+      for (int i = 0; i < count; i++)
+      {
+         FD_SET(sfds[i], &rfds);
+      }
    
-      retval = select(sfd + 1, &rfds, NULL, NULL, &tv);
+      retval = select(sfd + count + 1, &rfds, NULL, NULL, &tv);
       
       if (retval < 0)
       {
@@ -176,7 +222,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "incoming socket detected\n");
             ret = accept(sfd, (struct sockaddr *)&addr, &len);
             fprintf(stderr, "Accepted %d from socket: %d\n", ret, sfd);
-            
+            add_array(sfds, &count, &cap, ret);
          }
       }
       else
