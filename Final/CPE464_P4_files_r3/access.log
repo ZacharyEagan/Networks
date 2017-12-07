@@ -51,3 +51,4 @@
 ::ffff:127.0.0.1 - - [06/Dec/2017:23:53:32 -0800] "GET /json/status.json" 200 135 "" ""
 ::ffff:127.0.0.1 - - [06/Dec/2017:23:54:06 -0800] "GET /json/status.json" 200 135 "" ""
 ::ffff:127.0.0.1 - - [06/Dec/2017:23:55:04 -0800] "GET /json/status.json" 200 136 "" ""
+::ffff:127.0.0.1 - - [07/Dec/2017:09:25:19 -0800] "GET /json/implemented.json" 200 193 "" ""

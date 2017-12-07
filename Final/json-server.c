@@ -246,7 +246,7 @@ void serve_quit(int sfd)
    strcat(tots, serv);
    
    fprintf(stderr, "serve_quit: serving = %s", tots);   
-   write(sfd, tots, strlen(tots) + 1); 
+   write(sfd, tots, strlen(tots)); 
    
 }
 
@@ -255,7 +255,7 @@ void serve_imp(int sfd)
    char title[] = "HTTP/1.0 200 OK\n";
    char content[] = "Content-Type: application/json\n";
    char leng[] = "Content-Length: 193\n\n";
-   char serv[] = "[\n{ \"feature\": \"about\", \"URL\": \"/json/about.json\"},{ \"feature\": \"quit\", \"URL\": \"/json/quit\"},{ \"feature\": \"status\", \"URL\": \"/json/status.json\"},{ \"feature\": \"fortune\", \"URL\": \"/json/fortune\"}]";
+   char serv[] = "[\n{ \"feature\": \"about\", \"URL\": \"/json/about.json\"},{ \"feature\": \"quit\", \"URL\": \"/json/quit\"},{ \"feature\": \"status\", \"URL\": \"/json/status.json\"},{ \"feature\": \"fortune\", \"URL\": \"/json/fortune\"}]\n";
 
    char tots[strlen(title) + strlen(content) + 
              strlen(leng) + strlen(serv) + 4];
@@ -266,7 +266,7 @@ void serve_imp(int sfd)
    strcat(tots, serv);
    
    fprintf(stderr, "serve_about: serving = %s", tots);   
-   write(sfd, tots, strlen(tots) + 1); 
+   write(sfd, tots, strlen(tots)); 
    sub_array(Sfds, &Count, sfd);
    close(sfd);
 }
@@ -287,7 +287,7 @@ void serve_about(int sfd)
    strcat(tots, serv);
    
    fprintf(stderr, "serve_about: serving = %s", tots);   
-   write(sfd, tots, strlen(tots) + 1); 
+   write(sfd, tots, strlen(tots)); 
    sub_array(Sfds, &Count, sfd);
    close(sfd);
 }
@@ -310,7 +310,7 @@ void fourOfour(int sfd)
    strcat(tots, serv);
    
    fprintf(stderr, "fourOfour: serving = %s", tots);   
-   write(sfd, tots, strlen(tots) + 1); 
+   write(sfd, tots, strlen(tots)); 
    sub_array(Sfds, &Count, sfd);
    close(sfd);
 }
@@ -331,7 +331,7 @@ void fiveHundred(int sfd)
    strcat(tots, serv);
    
    fprintf(stderr, "fiveHundred: serving = %s", tots);   
-   write(sfd, tots, strlen(tots) + 1); 
+   write(sfd, tots, strlen(tots)); 
    sub_array(Sfds, &Count, sfd);
    close(sfd);
 }

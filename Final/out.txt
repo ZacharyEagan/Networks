@@ -1,0 +1,9 @@
+Trying 127.0.0.1...
+Connected to 127.0.0.1.
+Escape character is '^]'.
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 193
+
+[
+{ "feature": "about", "URL": "/json/about.json"},{ "feature": "quit", "URL": "/json/quit"},{ "feature": "status", "URL": "/json/status.json"},{ "feature": "fortune", "URL": "/json/fortune"}]
