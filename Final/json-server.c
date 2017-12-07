@@ -46,6 +46,10 @@ buf *WritBuf;
 void server_shutdown()
 {
    free(Sfds);
+   free(ReadLen);
+   free(WritLen);
+   free(ReadBuf);
+   free(WritBuf);
    printf("Server exiting cleanly\n");
    fflush(stdout);
    exit (0);
@@ -142,6 +146,7 @@ void bind_socket(int sfd, struct sockaddr_in6 *addr)
 /* extend the list of sockets to include a new one */
 void add_array(int *sfds, int *count, int *cap, int new_sfd)
 {
+   int i;
    /* If the vacant spots start to encroach on capacity double it */
    if (*count > *cap / 2)
    {
@@ -149,7 +154,7 @@ void add_array(int *sfds, int *count, int *cap, int new_sfd)
       sfds = realloc(sfds, *cap * sizeof (int));
 
       /* print out the array for debugging purposes */
-      for (int i = 0; i < *count; i++)
+      for (i = 0; i < *count; i++)
       {
          fprintf(stderr, "add_array: cur = %d, id = %d\n", i, sfds[i]);
       }
@@ -175,7 +180,8 @@ void add_buf(int count)
 
 void rem_buf(int loc, int count)
 {
-   for (int i = loc; i < count; i++)
+   int i;
+   for (i = loc; i < count; i++)
    {
       memcpy (ReadBuf + i, ReadBuf + i + 1, sizeof(buf));
       memcpy (WritBuf + i, WritBuf + i + 1, sizeof(buf));
@@ -190,7 +196,8 @@ void rem_buf(int loc, int count)
 int sub_array(int *sfds, int *count, int rem_sfd)
 {
    int ret = -1;
-   for (int i = 0; i < *count; i++)
+   int i;
+   for (i = 0; i < *count; i++)
    {
       if (sfds[i] == rem_sfd)
       {
@@ -210,7 +217,8 @@ int sub_array(int *sfds, int *count, int rem_sfd)
 int get_loc(int sfd)
 {
    int ret = -1;
-   for (int i = 0; i < Count; i++)
+   int i;
+   for (i = 0; i < Count; i++)
    {
       if (Sfds[i] == sfd)
       {  
@@ -259,6 +267,8 @@ void handle(int sfd, int op)
 
 int main(int argc, char *argv[])
 {
+   int i;
+
    /* set signal handler for ctrl-c */
    set_sigint();
 
@@ -304,7 +314,7 @@ int main(int argc, char *argv[])
       FD_ZERO(&wfds);
       FD_ZERO(&efds);
       FD_SET(sfd, &rfds);
-      for (int i = 0; i < Count; i++)
+      for (i = 0; i < Count; i++)
       {
          FD_SET(Sfds[i], &rfds);
          FD_SET(Sfds[i], &wfds);
@@ -321,7 +331,7 @@ int main(int argc, char *argv[])
       else if (retval)
       { 
          /* check all child sockets for input */
-         for (int i = 0; i < Count; i++)
+         for (i = 0; i < Count; i++)
          {
             if (FD_ISSET(Sfds[i], &rfds))
             {
