@@ -20,8 +20,8 @@
 
 /* program specific stuff */
 #include "smartalloc.h"
-#include "json-server.h"
-#include "parser.h"
+//#include "json-server.h"
+//#include "parser.h"
 
 
 #define READ 0
@@ -31,6 +31,15 @@
 int *Sfds;
 int Count = 0;
 
+typedef struct buf
+{
+   char buffer[BS];
+} buf;
+
+int *ReadLen;
+int *WritLen;
+buf *ReadBuf;
+buf *WritBuf;
 
 
 
@@ -105,7 +114,6 @@ void gen_addr(int argc, char *argv[], struct sockaddr_in6 *addr)
             exit(EXIT_FAILURE);
          }
       }
-         
    }
    addr->sin6_port = htons(0);
 }
@@ -131,55 +139,53 @@ void bind_socket(int sfd, struct sockaddr_in6 *addr)
    fflush(stdout);
 }
 
+/* extend the list of sockets to include a new one */
 void add_array(int *sfds, int *count, int *cap, int new_sfd)
 {
+   /* If the vacant spots start to encroach on capacity double it */
    if (*count > *cap / 2)
    {
       *cap *= 2;
       sfds = realloc(sfds, *cap * sizeof (int));
 
-      fprintf (stderr, "add_array: expanded, cap = %d, count = %d\n",
-                        *cap, *count);
+      /* print out the array for debugging purposes */
       for (int i = 0; i < *count; i++)
       {
          fprintf(stderr, "add_array: cur = %d, id = %d\n", i, sfds[i]);
       }
    }
-
+   /* Add the new descriptor to the end of the list */
    sfds[*count] = new_sfd;
    (*count)++;
 }
-/*
+
+/* Extend the buffer space to include data for a new socket */
 void add_buf(int count)
 {
-   fprintf(stderr, "add_buf: count = %d\n", count);
-   ReadBuf = realloc(ReadBuf, sizeof(char *) * count);
-   ReadBuf[count - 1] = malloc (sizeof(char) * BS);
-
+   /* buffers for storing input data */
+   ReadBuf = realloc(ReadBuf, sizeof(buf) * count);
+   memset(ReadBuf[count - 1].buffer, 0x00, BS);
    ReadLen = realloc(ReadLen, sizeof(int) * count);
-
-   WritBuf = realloc(ReadBuf, sizeof(char *) * count);
-   WritBuf[count - 1] = malloc (sizeof(char) * BS); 
-   
+   /* buffers for storing output data */
+   WritBuf = realloc(WritBuf, sizeof(buf) * count);
+   memset(WritBuf[count - 1].buffer, 0x00, BS);
    WritLen = realloc(WritLen, sizeof(int) * count);
-}*/
-/*
+}
+
+
 void rem_buf(int loc, int count)
 {
-   free(ReadBuf[loc]);
-   free(WritBuf[loc]);
    for (int i = loc; i < count; i++)
    {
-      ReadBuf[i] = ReadBuf[i + 1];
-      WritBuf[i] = WritBuf[i + 1];
+      memcpy (ReadBuf + i, ReadBuf + i + 1, sizeof(buf));
+      memcpy (WritBuf + i, WritBuf + i + 1, sizeof(buf));
       WritLen[i] = WritLen[i + 1];
       ReadLen[i] = ReadLen[i + 1];
    }
-   ReadBuf[count - 1] = NULL;
-   WritBuf[count - 1] = NULL;
+   
    WritLen[count - 1] = -1;
    ReadLen[count - 1] = -1;
-}*/
+}
 
 int sub_array(int *sfds, int *count, int rem_sfd)
 {
@@ -218,19 +224,19 @@ int get_loc(int sfd)
 
 void handle(int sfd, int op)
 {
-   int len;
+   int len, curlen;
    int hand = get_loc(sfd);
-   char buff[256];
-   fprintf(stderr, "handle: location = %d\n", hand);
+   char buff[BS];
+   memset(buff, 0, BS); 
    
    switch(op)
    {
       case READ:
          len = read(sfd, buff, BS);
-         if (len > 0)
+         if (len >= 0)
          { 
-   //         ReadBuf[hand] = malloc(sizeof(char *) * BS);
-            fprintf(stderr, "%s",buff);
+            curlen = strlen(ReadBuf[hand].buffer);
+            memcpy(&(ReadBuf[hand].buffer[curlen]), buff, len); 
          }
          else
          {
@@ -245,6 +251,8 @@ void handle(int sfd, int op)
       default:
       break;
    }
+   if (strstr(ReadBuf[hand].buffer, "GET: / HTTP1.1") != NULL)
+      fprintf(stderr, "recieved that one thing");
 }
 
 
@@ -277,7 +285,7 @@ int main(int argc, char *argv[])
 
 
    /* Variables for the select */
-   fd_set rfds;
+   fd_set rfds, wfds, efds;
    struct timeval tv;
    int retval;
    
@@ -293,13 +301,17 @@ int main(int argc, char *argv[])
       tv.tv_usec = 0;
    
       FD_ZERO(&rfds);
+      FD_ZERO(&wfds);
+      FD_ZERO(&efds);
       FD_SET(sfd, &rfds);
       for (int i = 0; i < Count; i++)
       {
          FD_SET(Sfds[i], &rfds);
+         FD_SET(Sfds[i], &wfds);
+         FD_SET(Sfds[i], &efds);
       }
    
-      retval = select(sfd + Count + 1, &rfds, NULL, NULL, &tv);
+      retval = select(sfd + Count + 1, &rfds, NULL, &efds, &tv);
       
       if (retval < 0)
       {
@@ -307,7 +319,16 @@ int main(int argc, char *argv[])
          fprintf(stderr, "Errno: %s", strerror(errno));
       }
       else if (retval)
-      {
+      { 
+         /* check all child sockets for input */
+         for (int i = 0; i < Count; i++)
+         {
+            if (FD_ISSET(Sfds[i], &rfds))
+            {
+               handle(Sfds[i],READ);
+            }
+         }
+
          /* check the acceptance socket */
          fprintf(stderr, "select says somthing happened\n");
          if(FD_ISSET(sfd, &rfds))
@@ -317,23 +338,16 @@ int main(int argc, char *argv[])
             fcntl(ret, F_SETFL, O_NONBLOCK);
             fprintf(stderr, "Accepted %d from socket: %d\n", ret, sfd);
             add_array(Sfds, &Count, &cap, ret);
-
-         }
-      
-         /* check all sockets for input */
-         for (int i = 0; i < Count; i++)
-         {
-            if (FD_ISSET(Sfds[i], &rfds))
-            {
-               
-               handle(Sfds[i],READ);
-            }
+            add_buf(Count);
          }
       }
       else
       {
          fprintf(stderr, "Select: no data, just checking in\n");
-      }   
+      }
+      
+
+   
    }
 
 
