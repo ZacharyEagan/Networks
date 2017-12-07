@@ -32,4 +32,4 @@ handin: README
 	handin bellardo 464_fp README json-server.c smartalloc.h smartalloc.c Makefile
 
 clean:
-	-rm -rf *.o *.out *.a server-$(EXEC_SUFFIX)
+	-rm -rf *.o *.out *.a json-server-$(EXEC_SUFFIX)

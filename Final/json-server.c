@@ -335,8 +335,19 @@ void fiveHundred(int sfd)
    sub_array(Sfds, &Count, sfd);
    close(sfd);
 }
-
-
+/*
+void serve_stat(int sfd)
+{
+   char tots[500];
+   
+   sprintf(tots, 
+    "Content-Type: application/json\nContent-Length: %d\n\n{\n \"num_clients\": %d,\n \"num_requests\": %d,\n \"errors\": %d,\n \"uptime\": %f,\n \"cpu_time\": %f,\n \"memory_used\": %l\n}\n", 
+    136, 7, 7, 2, 1054.978, 0.016, 145345234523452);
+   fprintf(stderr, "serve_about: serving = %s", tots);   
+   write(sfd, tots, strlen(tots) + 1); 
+   sub_array(Sfds, &Count, sfd);
+   close(sfd);
+}*/
 
 void handle(int sfd, int op)
 {
