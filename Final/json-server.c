@@ -250,7 +250,7 @@ void serve_quit(int sfd)
    
 }
 
-void serve_about(int sfd)
+void serve_imp(int sfd)
 {
    char title[] = "HTTP/1.0 200 OK\n";
    char content[] = "Content-Type: application/json\n";
@@ -270,6 +270,28 @@ void serve_about(int sfd)
    sub_array(Sfds, &Count, sfd);
    close(sfd);
 }
+
+void serve_about(int sfd)
+{
+   char title[] = "HTTP/1.0 200 OK\n";
+   char content[] = "Content-Type: application/json\n";
+   char leng[] = "Content-Length: 82\n\n";
+   char serv[] = "{\n  \"author\": \"Zachary Eagan\",  \"email\": \"zeagan@calpoly.edu\",  \"major\": \"CPE\"}\n";
+
+   char tots[strlen(title) + strlen(content) + 
+             strlen(leng) + strlen(serv) + 4];
+   memset(tots, 0x00, sizeof(tots));
+   strcat(tots, title);
+   strcat(tots, content);
+   strcat(tots, leng);
+   strcat(tots, serv);
+   
+   fprintf(stderr, "serve_about: serving = %s", tots);   
+   write(sfd, tots, strlen(tots) + 1); 
+   sub_array(Sfds, &Count, sfd);
+   close(sfd);
+}
+
 
 
 void fourOfour(int sfd)
@@ -314,6 +336,8 @@ void fiveHundred(int sfd)
    close(sfd);
 }
 
+
+
 void handle(int sfd, int op)
 {
    int len, curlen;
@@ -357,6 +381,10 @@ void handle(int sfd, int op)
       else if (strstr(ReadBuf[hand].buffer, "/json/about") != NULL)
       {
          serve_about(sfd);
+      }
+      else if (strstr(ReadBuf[hand].buffer, "/json/implemented.json") != NULL)
+      {
+         serve_imp(sfd);
       }
       else if (strstr(ReadBuf[hand].buffer, "/") != NULL)
       {
