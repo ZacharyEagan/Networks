@@ -1,6 +1,7 @@
 /* General Utilities */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* Errors and Interupts */
 #include <signal.h>
@@ -229,6 +230,25 @@ int get_loc(int sfd)
 }
 
 
+void serve_quit(int sfd)
+{
+   char title[] = "HTTP/1.0 200 OK\n";
+   char content[] = "Content-Type: application/json\n";
+   char leng[] = "Content-Length: 26\n\n";
+   char serv[] = "{\n  \"result\": \"success\"\n}\n";
+
+   char tots[strlen(title) + strlen(content) + 
+             strlen(leng) + strlen(serv) + 4];
+   memset(tots, 0x00, sizeof(tots));
+   strcat(tots, title);
+   strcat(tots, content);
+   strcat(tots, leng);
+   strcat(tots, serv);
+   
+   fprintf(stderr, "serve_quit: serving = %s", tots);   
+   write(sfd, tots, strlen(tots) + 1); 
+   
+}
 
 void handle(int sfd, int op)
 {
@@ -259,8 +279,19 @@ void handle(int sfd, int op)
       default:
       break;
    }
-   if (strstr(ReadBuf[hand].buffer, "GET: / HTTP1.1") != NULL)
-      fprintf(stderr, "recieved that one thing");
+   if (strstr(ReadBuf[hand].buffer, "GET") != NULL)
+   {
+      if (strstr(ReadBuf[hand].buffer, "/") != NULL && 
+          strstr(ReadBuf[hand].buffer, "HTTP1.1") != NULL)
+         fprintf(stderr, "serv http1.1\n");
+      
+      if (strstr(ReadBuf[hand].buffer, "quit") != NULL)
+      {
+         serve_quit(sfd);
+         server_shutdown();
+      }
+   }
+      
 }
 
 
@@ -359,8 +390,6 @@ int main(int argc, char *argv[])
 
    
    }
-
-
 
    fprintf(stderr, "Server exited from main not sigint\n");
    return 0;
