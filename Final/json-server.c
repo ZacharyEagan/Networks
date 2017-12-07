@@ -250,6 +250,70 @@ void serve_quit(int sfd)
    
 }
 
+void serve_about(int sfd)
+{
+   char title[] = "HTTP/1.0 200 OK\n";
+   char content[] = "Content-Type: application/json\n";
+   char leng[] = "Content-Length: 193\n\n";
+   char serv[] = "[\n{ \"feature\": \"about\", \"URL\": \"/json/about.json\"},{ \"feature\": \"quit\", \"URL\": \"/json/quit\"},{ \"feature\": \"status\", \"URL\": \"/json/status.json\"},{ \"feature\": \"fortune\", \"URL\": \"/json/fortune\"}]";
+
+   char tots[strlen(title) + strlen(content) + 
+             strlen(leng) + strlen(serv) + 4];
+   memset(tots, 0x00, sizeof(tots));
+   strcat(tots, title);
+   strcat(tots, content);
+   strcat(tots, leng);
+   strcat(tots, serv);
+   
+   fprintf(stderr, "serve_about: serving = %s", tots);   
+   write(sfd, tots, strlen(tots) + 1); 
+   sub_array(Sfds, &Count, sfd);
+   close(sfd);
+}
+
+
+void fourOfour(int sfd)
+{
+   char title[] = "HTTP/1.0 404 Not Found\n";
+   char content[] = "Content-Type: text/html\n";
+   char leng[] = "Content-Length: 162\n\n";
+   char serv[] = "<HTML><HEAD><TITLE>HTTP ERROR 404</TITLE></HEAD><BODY>404 Not Found.  Your request could not be completed due to encountering HTTP error number 404.</BODY></HTML>";
+
+   char tots[strlen(title) + strlen(content) + 
+             strlen(leng) + strlen(serv) + 4];
+   memset(tots, 0x00, sizeof(tots));
+   strcat(tots, title);
+   strcat(tots, content);
+   strcat(tots, leng);
+   strcat(tots, serv);
+   
+   fprintf(stderr, "fourOfour: serving = %s", tots);   
+   write(sfd, tots, strlen(tots) + 1); 
+   sub_array(Sfds, &Count, sfd);
+   close(sfd);
+}
+
+void fiveHundred(int sfd)
+{
+   char title[] = "HTTP/1.0 500 OK\n";
+   char content[] = "Content-Type: text/html\n";
+   char leng[] = "Content-Length: 167\n\n";
+   char serv[] = "<HTML><HEAD><TITLE>HTTP ERROR 500</TITLE></HEAD><BODY>500 Internal Error.  Your request could not be completed due to encountering HTTP error number 500.</BODY></HTML>";
+
+   char tots[strlen(title) + strlen(content) + 
+             strlen(leng) + strlen(serv) + 4];
+   memset(tots, 0x00, sizeof(tots));
+   strcat(tots, title);
+   strcat(tots, content);
+   strcat(tots, leng);
+   strcat(tots, serv);
+   
+   fprintf(stderr, "fiveHundred: serving = %s", tots);   
+   write(sfd, tots, strlen(tots) + 1); 
+   sub_array(Sfds, &Count, sfd);
+   close(sfd);
+}
+
 void handle(int sfd, int op)
 {
    int len, curlen;
@@ -285,13 +349,25 @@ void handle(int sfd, int op)
           strstr(ReadBuf[hand].buffer, "HTTP1.1") != NULL)
          fprintf(stderr, "serv http1.1\n");
       
-      if (strstr(ReadBuf[hand].buffer, "quit") != NULL)
+      if (strstr(ReadBuf[hand].buffer, "/json/quit") != NULL)
       {
          serve_quit(sfd);
          server_shutdown();
       }
-   }
+      else if (strstr(ReadBuf[hand].buffer, "/json/about") != NULL)
+      {
+         serve_about(sfd);
+      }
+      else if (strstr(ReadBuf[hand].buffer, "/") != NULL)
+      {
+         fourOfour(sfd);
+      }
       
+   }
+   else
+   {
+      fiveHundred(sfd);
+   }  
 }
 
 
@@ -352,7 +428,7 @@ int main(int argc, char *argv[])
          FD_SET(Sfds[i], &efds);
       }
    
-      retval = select(sfd + Count + 1, &rfds, NULL, &efds, &tv);
+      retval = select(sfd + Count + 1, &rfds, NULL, NULL, &tv);
       
       if (retval < 0)
       {
