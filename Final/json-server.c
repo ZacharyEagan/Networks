@@ -24,9 +24,19 @@
 #include "parser.h"
 
 
+#define READ 0
+#define WRITE 1
+#define BS 256
+
+int *Sfds;
+int Count = 0;
+
+
+
 
 void server_shutdown()
 {
+   free(Sfds);
    printf("Server exiting cleanly\n");
    fflush(stdout);
    exit (0);
@@ -139,23 +149,104 @@ void add_array(int *sfds, int *count, int *cap, int new_sfd)
    sfds[*count] = new_sfd;
    (*count)++;
 }
+/*
+void add_buf(int count)
+{
+   fprintf(stderr, "add_buf: count = %d\n", count);
+   ReadBuf = realloc(ReadBuf, sizeof(char *) * count);
+   ReadBuf[count - 1] = malloc (sizeof(char) * BS);
+
+   ReadLen = realloc(ReadLen, sizeof(int) * count);
+
+   WritBuf = realloc(ReadBuf, sizeof(char *) * count);
+   WritBuf[count - 1] = malloc (sizeof(char) * BS); 
+   
+   WritLen = realloc(WritLen, sizeof(int) * count);
+}*/
+/*
+void rem_buf(int loc, int count)
+{
+   free(ReadBuf[loc]);
+   free(WritBuf[loc]);
+   for (int i = loc; i < count; i++)
+   {
+      ReadBuf[i] = ReadBuf[i + 1];
+      WritBuf[i] = WritBuf[i + 1];
+      WritLen[i] = WritLen[i + 1];
+      ReadLen[i] = ReadLen[i + 1];
+   }
+   ReadBuf[count - 1] = NULL;
+   WritBuf[count - 1] = NULL;
+   WritLen[count - 1] = -1;
+   ReadLen[count - 1] = -1;
+}*/
 
 int sub_array(int *sfds, int *count, int rem_sfd)
 {
-   int ret = 0;
+   int ret = -1;
    for (int i = 0; i < *count; i++)
    {
       if (sfds[i] == rem_sfd)
       {
-         ret = 1;
+         ret = i;
          sfds[i] = sfds[i + 1];
          sfds[i + 1] = rem_sfd;
       }
    }
-   if (ret)
+   if (ret > -1)
+   {
+      //rem_buf(ret, *count);
       (*count)--;
+   }
    return ret;
 }
+
+int get_loc(int sfd)
+{
+   int ret = -1;
+   for (int i = 0; i < Count; i++)
+   {
+      if (Sfds[i] == sfd)
+      {  
+         ret = i;
+      }
+   }
+   return ret;
+}
+
+
+
+void handle(int sfd, int op)
+{
+   int len;
+   int hand = get_loc(sfd);
+   char buff[256];
+   fprintf(stderr, "handle: location = %d\n", hand);
+   
+   switch(op)
+   {
+      case READ:
+         len = read(sfd, buff, BS);
+         if (len > 0)
+         { 
+   //         ReadBuf[hand] = malloc(sizeof(char *) * BS);
+            fprintf(stderr, "%s",buff);
+         }
+         else
+         {
+            fprintf(stderr, "handle: ERNO\n");
+            fprintf(stderr, "Errno: %s", strerror(errno));
+         }
+      break;
+      
+      case WRITE:
+      break;
+      
+      default:
+      break;
+   }
+}
+
 
 
 int main(int argc, char *argv[])
@@ -180,9 +271,10 @@ int main(int argc, char *argv[])
    fcntl(sfd, F_SETFL, O_NONBLOCK);
 
    /* setup for extendable array */
-   int count = 0;
    int cap = 5;
-   int *sfds = malloc(cap * sizeof (int));
+   Sfds = malloc(cap * sizeof (int));
+
+
 
    /* Variables for the select */
    fd_set rfds;
@@ -202,12 +294,12 @@ int main(int argc, char *argv[])
    
       FD_ZERO(&rfds);
       FD_SET(sfd, &rfds);
-      for (int i = 0; i < count; i++)
+      for (int i = 0; i < Count; i++)
       {
-         FD_SET(sfds[i], &rfds);
+         FD_SET(Sfds[i], &rfds);
       }
    
-      retval = select(sfd + count + 1, &rfds, NULL, NULL, &tv);
+      retval = select(sfd + Count + 1, &rfds, NULL, NULL, &tv);
       
       if (retval < 0)
       {
@@ -216,28 +308,37 @@ int main(int argc, char *argv[])
       }
       else if (retval)
       {
+         /* check the acceptance socket */
          fprintf(stderr, "select says somthing happened\n");
          if(FD_ISSET(sfd, &rfds))
          {
             fprintf(stderr, "incoming socket detected\n");
             ret = accept(sfd, (struct sockaddr *)&addr, &len);
+            fcntl(ret, F_SETFL, O_NONBLOCK);
             fprintf(stderr, "Accepted %d from socket: %d\n", ret, sfd);
-            add_array(sfds, &count, &cap, ret);
+            add_array(Sfds, &Count, &cap, ret);
+
+         }
+      
+         /* check all sockets for input */
+         for (int i = 0; i < Count; i++)
+         {
+            if (FD_ISSET(Sfds[i], &rfds))
+            {
+               
+               handle(Sfds[i],READ);
+            }
          }
       }
       else
       {
          fprintf(stderr, "Select: no data, just checking in\n");
-      }
-      
-   
+      }   
    }
 
 
 
    fprintf(stderr, "Server exited from main not sigint\n");
-
-
    return 0;
 }
 
