@@ -23,9 +23,9 @@ else
 endif
 endif
 
-all:  server-$(EXEC_SUFFIX)
+all:  json-server-$(EXEC_SUFFIX)
 
-server-$(EXEC_SUFFIX):  
+json-server-$(EXEC_SUFFIX):  
 	$(CC) $(CFLAGS) $(OSINC) $(OSLIB) $(OSDEF) -o $@ json-server.c  smartalloc.c
 
 handin: README
