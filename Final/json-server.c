@@ -51,7 +51,7 @@ void server_shutdown()
    free(WritLen);
    free(ReadBuf);
    free(WritBuf);
-   printf("Server exiting cleanly\n");
+   printf("Server exiting cleanly.\n");
    fflush(stdout);
    exit (0);
 }
