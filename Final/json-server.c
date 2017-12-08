@@ -273,21 +273,22 @@ void serve_imp(int sfd)
 
 void serve_about(int sfd)
 {
-   char title[] = "HTTP/1.0 200 OK\n";
-   char content[] = "Content-Type: application/json\n";
+   char title[] = "HTTP/1.0 200 OK\r\n";
+   char content[] = "Content-Type: application/json\r\n";
    char leng[] = "Content-Length: 82\n\n";
-   char serv[] = "{\n  \"author\": \"Zachary Eagan\",  \"email\": \"zeagan@calpoly.edu\",  \"major\": \"CPE\"}\n";
+   char serv[] = "{\r\n  \"author\": \"Zachary Eagan\",  \"email\": \"zeagan@calpoly.edu\",  \"major\": \"CPE\"}";
 
    char tots[strlen(title) + strlen(content) + 
              strlen(leng) + strlen(serv) + 4];
    memset(tots, 0x00, sizeof(tots));
    strcat(tots, title);
    strcat(tots, content);
-   strcat(tots, leng);
+//   strcat(tots, leng);
    strcat(tots, serv);
    
-   fprintf(stderr, "serve_about: serving = %s", tots);   
+
    write(sfd, tots, strlen(tots)); 
+   fprintf(stderr, "serve_about: serving = %s", tots);   
    sub_array(Sfds, &Count, sfd);
    close(sfd);
 }
